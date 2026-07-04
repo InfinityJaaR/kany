@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { getThirdModule, isRemovedRoute } from '@/lib/modules'
+import { updateSession } from '@/lib/supabase/middleware'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  const supabaseResponse = await updateSession(request)
   const { pathname } = request.nextUrl
 
   if (isRemovedRoute(pathname)) {
@@ -23,24 +25,11 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  return NextResponse.next()
+  return supabaseResponse
 }
 
 export const config = {
   matcher: [
-    '/precios/:path*',
-    '/veterinarias/:path*',
-    '/adopciones/:path*',
-    '/transporte/:path*',
-    '/marketplace/:path*',
-    '/ia/:path*',
-    '/admin/:path*',
-    '/fundaciones/:path*',
-    '/dashboard/:path*',
-    '/roles/:path*',
-    '/perros/:path*',
-    '/gatos/:path*',
-    '/settings/:path*',
-    '/auth/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

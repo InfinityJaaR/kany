@@ -2,8 +2,11 @@ import Link from 'next/link'
 import { Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/layout/theme-toggle'
+import { getThirdModule } from '@/lib/modules'
 
 export function SiteHeader() {
+  const third = getThirdModule()
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/50 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -21,6 +24,16 @@ export function SiteHeader() {
             <Link href="/donaciones" className="text-foreground/60 hover:text-foreground transition">
               Donaciones
             </Link>
+            {third === 'prices' && (
+              <Link href="/precios" className="text-foreground/60 hover:text-foreground transition">
+                Precios
+              </Link>
+            )}
+            {third === 'vets' && (
+              <Link href="/veterinarias" className="text-foreground/60 hover:text-foreground transition">
+                Veterinarias
+              </Link>
+            )}
           </nav>
           <Link href="/">
             <Button variant="outline" size="sm" className="gap-2">

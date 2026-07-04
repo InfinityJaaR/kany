@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { needsOnboarding } from '@/lib/auth/onboarding'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -10,7 +11,9 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+      const { data: { user } } = await supabase.auth.getUser()
+      const destination = user && needsOnboarding(user) ? '/auth/onboarding' : next
+      return NextResponse.redirect(`${origin}${destination}`)
     }
   }
 

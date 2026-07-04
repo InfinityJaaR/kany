@@ -9,9 +9,33 @@ Guía paso a paso para configurar tu proyecto Supabase y conectarlo con Kany. Si
 1. Crear proyecto en Supabase
 2. Copiar keys al `.env.local`
 3. Ejecutar las 5 migraciones SQL (en orden)
-4. Configurar Authentication (URLs + email)
-5. Ejecutar migración 006 (Storage + imágenes)
-6. Probar registro, login y subida de fotos en Kany
+4. Configurar Authentication (URLs + email + Google OAuth)
+5. (Producción) Resend + DNS en Cloudflare + Custom SMTP
+6. Ejecutar migración 006 (Storage + imágenes)
+7. Probar registro, login y subida de fotos en Kany
+
+---
+
+## Evitar rate limit de correos (importante)
+
+Supabase incluye un SMTP de prueba con **~2 correos/hora**. Cada registro con confirmación, magic link o reset de contraseña consume ese cupo.
+
+| Flujo en Kany | ¿Envía email? |
+|---------------|---------------|
+| Login con contraseña | No |
+| Login con Google | No |
+| Magic link (`signInWithOtp`) | **Sí** |
+| Registro con Confirm email ON | **Sí** |
+
+**Solución inmediata (hackathon):**
+
+1. **Authentication → Providers → Email** → desactiva **Confirm email**
+2. En `.env.local`: `NEXT_PUBLIC_ENABLE_MAGIC_LINK=false` (valor por defecto en `.env.example`)
+3. Usa **Google OAuth** o **correo + contraseña** como métodos principales
+
+**Solución producción:** Custom SMTP con Resend + dominio `aseisis.com` (Pasos 5.4–5.6).
+
+> Cloudflare **no ofrece SMTP saliente**. Email Routing solo enruta correos **entrantes**. Usa Cloudflare para los registros DNS (SPF, DKIM, DMARC) del dominio verificado en Resend.
 
 ---
 
@@ -23,18 +47,22 @@ Completa esto **después** de las migraciones 001–005:
 - [ ] **A2.** Reiniciar `pnpm dev` tras cambiar `.env.local`
 - [ ] **A3.** **Authentication → URL Configuration** → Site URL: `http://localhost:3000`
 - [ ] **A4.** Redirect URLs: `http://localhost:3000/auth/callback` → **Save**
-- [ ] **A5.** **Authentication → Providers → Email** → Enable ON → **Save**
-- [ ] **A6.** (Hackathon) Desactivar **Confirm email** para entrar sin confirmar correo
-- [ ] **A7.** Registrar en `/auth/register` con tipo de usuario
+- [ ] **A5.** **Authentication → Providers → Email** → Enable ON → **Confirm email OFF** (hackathon) → **Save**
+- [ ] **A5b.** **Authentication → Providers → Google** → Enable ON + Client ID/Secret (ver Paso 5.3)
+- [ ] **A6.** `.env.local` con `NEXT_PUBLIC_ENABLE_MAGIC_LINK=false` (evita magic link hasta tener SMTP)
+- [ ] **A7.** Registrar en `/auth/register` o login con Google
 - [ ] **A8.** Verificar fila en **Table Editor → profiles**
 - [ ] **A9.** Login en `/auth/login` → header muestra tu nombre y botón **Salir**
+- [ ] **A10.** (Google) Tras primer login → `/auth/onboarding` para elegir tipo de usuario
 
 | Síntoma | Solución |
 |---------|----------|
 | `Invalid API key` | Revisa `.env.local` y reinicia `pnpm dev` |
 | `auth_callback_error` en login | Agrega Redirect URL exacta en A4 |
-| Email not confirmed | Desactiva Confirm email (A6) |
+| Email not confirmed | Desactiva Confirm email (A5) |
+| `Email rate limit exceeded` | Desactiva Confirm email; evita magic link; usa Google OAuth o configura Custom SMTP (5.5) |
 | Header sigue en "Iniciar sesión" | Cierra sesión y vuelve a entrar; revisa keys |
+| Google login falla | Revisa Client ID/Secret y redirect URI en Google Cloud (5.3) |
 
 ---
 
@@ -203,32 +231,122 @@ Si no aparecen, vuelve al Paso 3 y revisa si alguna migración falló (mensaje r
 
 4. Haz clic en **Save** si hay botón de guardar
 
-> Cuando despliegues en Netlify, agrega también tu URL de producción, por ejemplo:
+> Cuando despliegues en producción, agrega también tu URL de producción, por ejemplo:
 > `https://tu-app.netlify.app/auth/callback`
+> `https://aseisis.com/auth/callback` (si usas ese dominio)
 
-### 5.2 Proveedor de email (correo + contraseña y magic link)
+### 5.2 Proveedor de email (correo + contraseña)
 
 1. **Authentication** → **Providers** (o **Sign In / Providers**)
 2. Busca **Email** en la lista
 3. Haz clic en **Email** para expandir
 4. Activa:
    - **Enable Email provider** → ON
-   - **Confirm email** → puedes dejarlo ON (recomendado) o OFF para pruebas rápidas
+   - **Confirm email** → **OFF** para hackathon/demo (evita rate limit). ON solo con Custom SMTP (5.5)
    - **Secure email change** → ON (opcional)
 5. Haz clic en **Save**
 
 Con esto funcionan:
 - Registro con **correo y contraseña** (`/auth/register`)
 - Inicio de sesión con **contraseña** (`/auth/login`)
-- Inicio de sesión con **enlace por correo** (magic link, pestaña en login)
 
-### 5.3 (Opcional) Desactivar confirmación de email para pruebas
+**Magic link** (enlace por correo) está **desactivado en la UI** por defecto (`NEXT_PUBLIC_ENABLE_MAGIC_LINK=false`). Actívalo solo cuando tengas Custom SMTP configurado.
 
-Si quieres registrarte sin revisar el correo durante el hackathon:
+### 5.3 Google OAuth (recomendado — sin emails)
 
-1. **Authentication** → **Providers** → **Email**
-2. Desactiva **Confirm email**
-3. **Save**
+Google OAuth no consume el rate limit de correos de Supabase.
+
+#### En Google Cloud Console
+
+1. Ve a [Google Cloud Console](https://console.cloud.google.com/)
+2. Crea o selecciona un proyecto
+3. **APIs & Services** → **OAuth consent screen** → configura pantalla (External, nombre de app, email de soporte)
+4. **APIs & Services** → **Credentials** → **Create Credentials** → **OAuth 2.0 Client ID**
+5. Tipo: **Web application**
+6. Configura:
+
+| Campo | Valor |
+|-------|-------|
+| **Authorized JavaScript origins** | `http://localhost:3000`, `https://tu-dominio-produccion` |
+| **Authorized redirect URIs** | `https://TU_PROJECT.supabase.co/auth/v1/callback` |
+
+> Reemplaza `TU_PROJECT` por el ref de tu proyecto Supabase (ej. `abcdefghijklmnop`).
+
+7. Copia **Client ID** y **Client Secret**
+
+#### En Supabase Dashboard
+
+1. **Authentication** → **Providers** → **Google**
+2. **Enable Google** → ON
+3. Pega **Client ID** y **Client Secret**
+4. **Save**
+
+#### Onboarding tras Google
+
+Usuarios que entran con Google son redirigidos a `/auth/onboarding` para elegir su tipo (`person`, `foundation`, `vet`). El registro con correo/contraseña sigue pidiendo el tipo en `/auth/register`.
+
+### 5.4 Resend + dominio aseisis.com (Cloudflare DNS)
+
+Para enviar correos de auth desde tu dominio (producción):
+
+1. Crea cuenta en [resend.com](https://resend.com)
+2. **Domains** → **Add domain**
+   - Recomendado: subdominio `auth.aseisis.com` o `mail.aseisis.com` (no mezcla con correo corporativo)
+   - Alternativa: dominio raíz `aseisis.com`
+3. Resend mostrará registros **SPF** (TXT), **DKIM** (CNAME o TXT) y opcionalmente **DMARC**
+4. En **Cloudflare** → dominio `aseisis.com` → **DNS** → **Add record**:
+
+| Tipo | Nombre | Contenido | Proxy |
+|------|--------|-----------|-------|
+| TXT | (según Resend) | valor SPF | DNS only |
+| CNAME | (según Resend) | valor DKIM | **DNS only (gris)** |
+| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:tu@aseisis.com` | DNS only |
+
+> Los registros CNAME/TXT de email deben estar en **DNS only** (nube gris), no proxied (naranja).
+
+5. Espera verificación en Resend (minutos a horas)
+6. Copia tu **API Key** a `.env.local`:
+
+```env
+RESEND_API_KEY=re_xxxxxxxx
+EMAIL_FROM=Kany <noreply@auth.aseisis.com>
+```
+
+### 5.5 Custom SMTP en Supabase (Resend)
+
+Una vez verificado el dominio en Resend:
+
+1. **Authentication** → **SMTP Settings** (o **Email Settings**)
+2. Activa **Enable Custom SMTP**
+3. Completa:
+
+| Campo | Valor |
+|-------|-------|
+| **Sender email** | `noreply@auth.aseisis.com` (dominio verificado en Resend) |
+| **Sender name** | `Kany` |
+| **Host** | `smtp.resend.com` |
+| **Port** | `465` (SSL) o `587` (TLS) |
+| **Username** | `resend` |
+| **Password** | tu `RESEND_API_KEY` de Resend |
+
+4. **Save**
+
+Tras activar SMTP custom, el límite sube a ~**30 emails/hora** (configurable).
+
+### 5.6 Rate limits y magic link en producción
+
+1. **Authentication** → **Rate Limits**
+2. Ajusta **Emails sent** (`rate_limit_email_sent`) según tu plan de Resend
+3. En `.env.local` de producción: `NEXT_PUBLIC_ENABLE_MAGIC_LINK=true` si quieres ofrecer magic link
+4. Opcional: reactiva **Confirm email** en Providers → Email
+
+### 5.7 Plantillas de email
+
+1. **Authentication** → **Email Templates**
+2. Personaliza: Confirm signup, Magic Link, Reset Password
+3. Usa branding de Kany y remitente `@aseisis.com` coherente con SMTP
+
+> **Nota:** Supabase Auth **no** lee `RESEND_API_KEY` del `.env` de Next.js. La clave va en **SMTP Settings** del dashboard. El `.env` sirve para emails transaccionales futuros de la app vía API de Resend.
 
 ---
 
@@ -318,14 +436,18 @@ pnpm dev
 
 ### Probar login
 
-**Con contraseña:**
-1. `/auth/login` → pestaña **Correo y contraseña**
-2. Ingresa email y contraseña → **Entrar**
+**Con Google:**
+1. `/auth/login` → **Continuar con Google**
+2. Tras autorizar → `/auth/callback` → `/auth/onboarding` (primera vez) o inicio
+3. Elige tipo de usuario en onboarding si aplica
 
-**Con magic link:**
+**Con contraseña:**
+1. `/auth/login` → ingresa email y contraseña → **Entrar**
+
+**Con magic link** (solo si `NEXT_PUBLIC_ENABLE_MAGIC_LINK=true` y Custom SMTP):
 1. `/auth/login` → pestaña **Enlace por correo**
 2. Ingresa email → **Enviar enlace**
-3. Revisa tu correo → haz clic en el enlace → te redirige a `/auth/callback` y luego al inicio
+3. Revisa tu correo → haz clic en el enlace → `/auth/callback` → inicio
 
 ---
 
@@ -355,13 +477,17 @@ Nunca edites migraciones que ya corriste en producción; siempre crea una migrac
 - [ ] Migración 006 (Storage) ejecutada
 - [ ] Buckets `pet-images`, `campaign-images`, `avatars` visibles
 - [ ] 6 tablas visibles en Table Editor
-- [ ] Site URL y Redirect URL configuradas
-- [ ] Email provider activado
+- [ ] Site URL y Redirect URL configuradas (localhost + producción)
+- [ ] Email provider activado; Confirm email OFF (hackathon) o Custom SMTP ON (producción)
+- [ ] Google OAuth configurado (Client ID/Secret en Supabase)
 - [ ] Registro funciona y aparece fila en `profiles`
 - [ ] Login con contraseña funciona
+- [ ] Login con Google funciona + onboarding de tipo de usuario
 - [ ] Header muestra nombre y botón Salir
 - [ ] Subida de imagen en `/reportar` funciona
-- [ ] Magic link funciona (opcional)
+- [ ] (Producción) Dominio verificado en Resend + DNS en Cloudflare
+- [ ] (Producción) Custom SMTP activo en Supabase
+- [ ] Magic link funciona (opcional, requiere SMTP custom)
 
 ---
 
@@ -373,7 +499,10 @@ Nunca edites migraciones que ya corriste en producción; siempre crea una migrac
 | Magic link no redirige | Agrega `http://localhost:3000/auth/callback` en Redirect URLs. |
 | `user_type` inválido al registrarse | Asegúrate de haber corrido la migración `001_profiles_and_auth.sql`. |
 | No puedo crear campaña (futuro) | Solo usuarios con `user_type = foundation` pueden insertar en `campaigns` (RLS). |
-| Email no llega | Revisa spam. En plan free, Supabase limita emails/hora. Desactiva **Confirm email** para pruebas. |
+| Email no llega / rate limit | Desactiva Confirm email; usa Google OAuth; configura Custom SMTP con Resend (Pasos 5.4–5.5). Revisa spam. |
+| `Email rate limit exceeded` | Mismo que arriba. Evita magic link hasta tener SMTP (`NEXT_PUBLIC_ENABLE_MAGIC_LINK=false`). |
+| Google redirige a login con error | Verifica redirect URI `https://TU_PROJECT.supabase.co/auth/v1/callback` en Google Cloud. |
+| Usuario Google queda como `person` sin elegir | Debe pasar por `/auth/onboarding`; revisa que el middleware esté activo. |
 | `pnpm db:push` pide login | Ejecuta `pnpm exec supabase login` y `supabase link` primero. |
 | Error al subir imagen | Corre migración 006; debes estar logueado; máximo 5 MB JPG/PNG/WebP. |
 | No puedo crear campaña | Regístrate como **Fundación**; solo ese rol puede insertar en `campaigns`. |

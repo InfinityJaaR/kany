@@ -1,5 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { needsOnboarding } from '@/lib/auth/onboarding'
+
+const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/callback']
+const ONBOARDING_PATH = '/auth/onboarding'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -23,7 +27,26 @@ export async function updateSession(request: NextRequest) {
     },
   )
 
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  const { pathname } = request.nextUrl
+
+  if (user && needsOnboarding(user) && pathname !== ONBOARDING_PATH) {
+    const url = request.nextUrl.clone()
+    url.pathname = ONBOARDING_PATH
+    return NextResponse.redirect(url)
+  }
+
+  if (user && !needsOnboarding(user) && pathname === ONBOARDING_PATH) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
+  }
+
+  if (user && AUTH_PATHS.includes(pathname) && pathname !== '/auth/callback') {
+    const url = request.nextUrl.clone()
+    url.pathname = needsOnboarding(user) ? ONBOARDING_PATH : '/'
+    return NextResponse.redirect(url)
+  }
 
   return supabaseResponse
 }

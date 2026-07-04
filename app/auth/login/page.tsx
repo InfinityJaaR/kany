@@ -4,8 +4,11 @@ import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { createClient } from '@/lib/supabase/client'
+
+const enableMagicLink = process.env.NEXT_PUBLIC_ENABLE_MAGIC_LINK === 'true'
 
 type LoginMode = 'password' | 'magic'
 
@@ -65,27 +68,40 @@ function LoginForm() {
 
   return (
     <>
-      <div className="flex gap-2 mb-6">
-        <Button
-          type="button"
-          variant={mode === 'password' ? 'default' : 'outline'}
-          className="flex-1"
-          onClick={() => setMode('password')}
-        >
-          Correo y contraseña
-        </Button>
-        <Button
-          type="button"
-          variant={mode === 'magic' ? 'default' : 'outline'}
-          className="flex-1"
-          onClick={() => setMode('magic')}
-        >
-          Enlace por correo
-        </Button>
+      <GoogleSignInButton className="mb-6" />
+
+      <div className="relative mb-6">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-foreground/50">o con correo</span>
+        </div>
       </div>
 
+      {enableMagicLink && (
+        <div className="flex gap-2 mb-6">
+          <Button
+            type="button"
+            variant={mode === 'password' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setMode('password')}
+          >
+            Correo y contraseña
+          </Button>
+          <Button
+            type="button"
+            variant={mode === 'magic' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setMode('magic')}
+          >
+            Enlace por correo
+          </Button>
+        </div>
+      )}
+
       <div className="bg-card border border-border rounded-2xl p-6">
-        {mode === 'password' ? (
+        {mode === 'password' || !enableMagicLink ? (
           <form onSubmit={handlePasswordLogin} className="space-y-4">
             <input
               type="email"
@@ -148,7 +164,7 @@ export default function LoginPage() {
       <main className="max-w-md mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold text-foreground mb-2">Iniciar sesión</h1>
         <p className="text-foreground/60 mb-8">
-          Accede con correo y contraseña o recibe un enlace mágico por correo.
+          Accede con Google o con correo y contraseña.
         </p>
 
         <Suspense fallback={<p className="text-foreground/60">Cargando…</p>}>

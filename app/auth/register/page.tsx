@@ -19,6 +19,8 @@ export default function RegisterPage() {
     label: '',
     latitude: null,
     longitude: null,
+    department: null,
+    municipality: null,
     radiusMeters: 1000,
   })
   const [loading, setLoading] = useState(false)
@@ -48,6 +50,8 @@ export default function RegisterPage() {
           home_location_label: homeLocation.label,
           home_latitude: homeLocation.latitude,
           home_longitude: homeLocation.longitude,
+          home_department: homeLocation.department,
+          home_municipality: homeLocation.municipality,
           notification_radius_m: homeLocation.radiusMeters,
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,

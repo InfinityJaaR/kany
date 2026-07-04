@@ -52,6 +52,7 @@ Configurar `NEXT_PUBLIC_THIRD_MODULE` en Netlify UI por entorno.
 
 ## Documentación
 
+- [Pasos en Supabase (configuración paso a paso)](docs/PASOS_SUPABASE.md)
 - [Estado actual del sistema](docs/ESTADO_ACTUAL_SISTEMA.md)
 - [Features](docs/FEATURES.md)
 - Planes históricos ChuchoConnect en [`docs/`](docs/)

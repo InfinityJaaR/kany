@@ -1,13 +1,12 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/layout/theme-toggle'
 import { AuthButton } from '@/components/layout/auth-button'
-import { getThirdModule } from '@/lib/modules'
+import { RoleBadge, RoleNav } from '@/components/layout/role-nav'
+import { ThemeToggle } from '@/components/layout/theme-toggle'
 
 export function SiteHeader() {
-  const third = getThirdModule()
-
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/50 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -18,24 +17,8 @@ export function SiteHeader() {
           <h1 className="text-xl font-bold text-foreground">Kany</h1>
         </Link>
         <div className="flex items-center gap-2 md:gap-4">
-          <nav className="hidden md:flex items-center gap-4 text-sm">
-            <Link href="/perdidas" className="text-foreground/60 hover:text-foreground transition">
-              Perdidas
-            </Link>
-            <Link href="/donaciones" className="text-foreground/60 hover:text-foreground transition">
-              Donaciones
-            </Link>
-            {third === 'prices' && (
-              <Link href="/precios" className="text-foreground/60 hover:text-foreground transition">
-                Precios
-              </Link>
-            )}
-            {third === 'vets' && (
-              <Link href="/veterinarias" className="text-foreground/60 hover:text-foreground transition">
-                Veterinarias
-              </Link>
-            )}
-          </nav>
+          <RoleNav />
+          <RoleBadge />
           <AuthButton />
           <Link href="/">
             <Button variant="outline" size="sm" className="gap-2">
@@ -47,5 +30,27 @@ export function SiteHeader() {
         </div>
       </div>
     </header>
+  )
+}
+
+export function SiteHeaderWithBanner({ banner }: { banner?: React.ReactNode }) {
+  return (
+    <>
+      {banner}
+      <SiteHeader />
+    </>
+  )
+}
+
+export function SiteHeaderSuspense({ banner }: { banner?: React.ReactNode }) {
+  return (
+    <>
+      {banner}
+      <Suspense fallback={
+        <header className="sticky top-0 z-40 border-b border-border bg-card/50 backdrop-blur-sm h-16" />
+      }>
+        <SiteHeader />
+      </Suspense>
+    </>
   )
 }

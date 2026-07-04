@@ -98,9 +98,40 @@ export type FetchVetsResult = {
   totalPages: number
 }
 
+export type VetRowWithDistance = VetRow & { distanceKm: number }
+
 export type VetFilterOptions = {
   cities: string[]
   categories: string[]
+}
+
+export async function fetchVetsNearby(
+  lat: number,
+  lng: number,
+  limit = 6,
+): Promise<VetRowWithDistance[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('vets')
+    .select('*')
+    .not('latitude', 'is', null)
+    .not('longitude', 'is', null)
+    .limit(500)
+
+  if (error) {
+    console.error('fetchVetsNearby:', error.message)
+    return []
+  }
+
+  const { haversineDistanceKm } = await import('@/lib/geo')
+
+  return (data ?? [])
+    .map((vet) => ({
+      ...vet,
+      distanceKm: haversineDistanceKm(lat, lng, vet.latitude!, vet.longitude!),
+    }))
+    .sort((a, b) => a.distanceKm - b.distanceKm)
+    .slice(0, limit)
 }
 
 export async function fetchLostPets(): Promise<LostPetRow[]> {

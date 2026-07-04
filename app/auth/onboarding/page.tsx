@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { LocationPicker, type HomeLocation } from '@/components/auth/location-picker'
@@ -9,8 +9,14 @@ import { createClient } from '@/lib/supabase/client'
 import { needsOnboarding } from '@/lib/auth/onboarding'
 import { USER_TYPE_LABELS, type Profile, type UserType } from '@/types/auth'
 
-export default function OnboardingPage() {
+function OnboardingForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = (() => {
+    const path = searchParams.get('redirect')
+    if (!path || !path.startsWith('/') || path.startsWith('//')) return '/'
+    return path
+  })()
   const [userType, setUserType] = useState<UserType>('person')
   const [homeLocation, setHomeLocation] = useState<HomeLocation>({
     label: '',
@@ -47,7 +53,7 @@ export default function OnboardingPage() {
       }
 
       if (!needsOnboarding(profile)) {
-        router.replace('/')
+        router.replace(redirectTo)
         return
       }
 
@@ -67,7 +73,7 @@ export default function OnboardingPage() {
     }
 
     checkSession()
-  }, [router])
+  }, [router, redirectTo])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -116,21 +122,74 @@ export default function OnboardingPage() {
     })
 
     setSubmitting(false)
-    router.push('/')
+    router.push(redirectTo)
     router.refresh()
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <SiteHeader />
-        <main className="max-w-md mx-auto px-4 py-12">
-          <p className="text-foreground/60">Cargando...</p>
-        </main>
-      </div>
-    )
+    return <p className="text-foreground/60">Cargando...</p>
   }
 
+  return (
+    <div className="bg-card border border-border rounded-2xl p-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-foreground mb-2">
+            Tipo de usuario
+          </label>
+          <div className="grid grid-cols-1 gap-2">
+            {(Object.keys(USER_TYPE_LABELS) as UserType[]).map((type) => (
+              <label
+                key={type}
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                  userType === type
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/40'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="userType"
+                  value={type}
+                  checked={userType === type}
+                  onChange={() => setUserType(type)}
+                  className="accent-primary"
+                />
+                <span className="text-sm font-medium text-foreground">
+                  {USER_TYPE_LABELS[type]}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="text-xs text-foreground/60 space-y-1">
+          {userType === 'person' && <p>Podras reportar mascotas perdidas o encontradas.</p>}
+          {userType === 'foundation' && <p>Podras crear y gestionar campanas de donacion.</p>}
+          {userType === 'vet' && <p>Podras registrar y editar tu clinica veterinaria.</p>}
+        </div>
+
+        <LocationPicker value={homeLocation} onChange={setHomeLocation} />
+
+        <Button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-primary hover:bg-primary/90"
+        >
+          {submitting ? 'Guardando...' : 'Guardar y continuar'}
+        </Button>
+      </form>
+
+      {error && (
+        <p className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -140,61 +199,9 @@ export default function OnboardingPage() {
           Estos datos nos ayudan a mostrarte funciones segun tu rol y activar alertas cercanas.
         </p>
 
-        <div className="bg-card border border-border rounded-2xl p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Tipo de usuario
-              </label>
-              <div className="grid grid-cols-1 gap-2">
-                {(Object.keys(USER_TYPE_LABELS) as UserType[]).map((type) => (
-                  <label
-                    key={type}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
-                      userType === type
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/40'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="userType"
-                      value={type}
-                      checked={userType === type}
-                      onChange={() => setUserType(type)}
-                      className="accent-primary"
-                    />
-                    <span className="text-sm font-medium text-foreground">
-                      {USER_TYPE_LABELS[type]}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="text-xs text-foreground/60 space-y-1">
-              {userType === 'person' && <p>Podras reportar mascotas perdidas o encontradas.</p>}
-              {userType === 'foundation' && <p>Podras crear y gestionar campanas de donacion.</p>}
-              {userType === 'vet' && <p>Podras registrar y editar tu clinica veterinaria.</p>}
-            </div>
-
-            <LocationPicker value={homeLocation} onChange={setHomeLocation} />
-
-            <Button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-primary hover:bg-primary/90"
-            >
-              {submitting ? 'Guardando...' : 'Guardar y continuar'}
-            </Button>
-          </form>
-
-          {error && (
-            <p className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">
-              {error}
-            </p>
-          )}
-        </div>
+        <Suspense fallback={<p className="text-foreground/60">Cargando...</p>}>
+          <OnboardingForm />
+        </Suspense>
       </main>
     </div>
   )

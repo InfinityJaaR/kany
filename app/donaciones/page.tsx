@@ -1,7 +1,9 @@
 import Link from 'next/link'
-import { Heart, TrendingUp, Users, Plus, Search } from 'lucide-react'
+import { TrendingUp, Users, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
+import { DonateButton } from '@/components/donations/donate-button'
+import { getSessionProfile } from '@/lib/auth/profile'
 import { getCampaignProgress, getStatusColor } from '@/data/mockCampaigns'
 import { fetchCampaigns } from '@/lib/data/queries'
 
@@ -9,6 +11,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function DonationsPage() {
   const campaigns = await fetchCampaigns()
+  const { userType } = await getSessionProfile()
+  const isFoundation = userType === 'foundation'
 
   const totalRaised = campaigns.reduce((sum, c) => sum + Number(c.current), 0)
   const totalDonors = campaigns.reduce((sum, c) => sum + c.donors, 0)
@@ -24,11 +28,13 @@ export default async function DonationsPage() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Campañas de Donación</h1>
             <p className="text-foreground/60">Tu ayuda salva vidas animales. Cada donación cuenta.</p>
           </div>
-          <Link href="/donaciones/nueva">
-            <Button size="lg" className="bg-primary hover:bg-primary/90">
-              <Plus className="w-4 h-4 mr-2" /> Crear campaña
-            </Button>
-          </Link>
+          {isFoundation && (
+            <Link href="/donaciones/nueva">
+              <Button size="lg" className="bg-primary hover:bg-primary/90">
+                <Plus className="w-4 h-4 mr-2" /> Crear campaña
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="mb-8">
@@ -69,9 +75,11 @@ export default async function DonationsPage() {
             <p className="text-sm text-foreground/50 mb-6">
               Ejecuta <code className="text-xs bg-muted px-1 rounded">supabase/seed.sql</code> o crea una como fundación.
             </p>
-            <Link href="/donaciones/nueva">
-              <Button className="bg-primary hover:bg-primary/90">Crear campaña</Button>
-            </Link>
+            {isFoundation && (
+              <Link href="/donaciones/nueva">
+                <Button className="bg-primary hover:bg-primary/90">Crear campaña</Button>
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
@@ -151,10 +159,7 @@ export default async function DonationsPage() {
                     </div>
 
                     <div className="flex gap-3">
-                      <Button variant="outline" className="flex-1">Ver detalles</Button>
-                      <Button className="flex-1 bg-primary hover:bg-primary/90">
-                        <Heart className="w-4 h-4 mr-2" /> Donar
-                      </Button>
+                      <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
                     </div>
                   </div>
                 </div>

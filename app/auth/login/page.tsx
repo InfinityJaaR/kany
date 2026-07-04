@@ -8,14 +8,29 @@ import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { createClient } from '@/lib/supabase/client'
 import { needsOnboarding } from '@/lib/auth/onboarding'
+import { USER_TYPE_LABELS, type UserType } from '@/types/auth'
 
 const enableMagicLink = process.env.NEXT_PUBLIC_ENABLE_MAGIC_LINK === 'true'
 
+const DEMO_PASSWORD = 'DemoKany2026!'
+
+const DEMO_ACCOUNTS: { email: string; userType: UserType }[] = [
+  { email: 'demo.usuario@kany.sv', userType: 'person' },
+  { email: 'demo.fundacion@kany.sv', userType: 'foundation' },
+  { email: 'demo.vet@kany.sv', userType: 'vet' },
+]
+
 type LoginMode = 'password' | 'magic'
+
+function safeRedirectPath(path: string | null): string {
+  if (!path || !path.startsWith('/') || path.startsWith('//')) return '/'
+  return path
+}
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const redirectTo = safeRedirectPath(searchParams.get('redirect'))
   const [mode, setMode] = useState<LoginMode>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -26,6 +41,27 @@ function LoginForm() {
       ? 'No se pudo completar el inicio de sesión. Intenta de nuevo o usa correo y contraseña.'
       : null
   const [error, setError] = useState<string | null>(callbackError)
+
+  async function finishLogin() {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = user
+      ? await supabase
+          .from('profiles')
+          .select('onboarding_completed, home_latitude, home_longitude')
+          .eq('id', user.id)
+          .maybeSingle()
+      : { data: null }
+
+    if (needsOnboarding(profile)) {
+      const onboardingUrl = new URL('/auth/onboarding', window.location.origin)
+      if (redirectTo !== '/') onboardingUrl.searchParams.set('redirect', redirectTo)
+      router.push(onboardingUrl.pathname + onboardingUrl.search)
+    } else {
+      router.push(redirectTo)
+    }
+    router.refresh()
+  }
 
   async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -42,18 +78,35 @@ function LoginForm() {
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = user
-      ? await supabase
-          .from('profiles')
-          .select('onboarding_completed, home_latitude, home_longitude')
-          .eq('id', user.id)
-          .maybeSingle()
-      : { data: null }
+    setLoading(false)
+    await finishLogin()
+  }
+
+  async function handleDemoLogin(demoEmail: string) {
+    setEmail(demoEmail)
+    setPassword(DEMO_PASSWORD)
+    setLoading(true)
+    setError(null)
+    setMessage(null)
+
+    const supabase = createClient()
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: demoEmail,
+      password: DEMO_PASSWORD,
+    })
+
+    if (authError) {
+      setLoading(false)
+      setError(
+        authError.message.includes('Invalid login')
+          ? 'Cuenta demo no encontrada. Ejecuta: pnpm seed:demo'
+          : authError.message,
+      )
+      return
+    }
 
     setLoading(false)
-    router.push(needsOnboarding(profile) ? '/auth/onboarding' : '/')
-    router.refresh()
+    await finishLogin()
   }
 
   async function handleMagicLink(e: React.FormEvent) {
@@ -66,7 +119,7 @@ function LoginForm() {
     const { error: authError } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
       },
     })
 
@@ -165,6 +218,35 @@ function LoginForm() {
           </p>
         )}
       </div>
+
+      <div className="mt-8 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-2">Cuentas demo para jurado</h2>
+        <p className="text-sm text-foreground/60 mb-4">
+          Contraseña para todas: <code className="text-xs bg-muted px-1 rounded">{DEMO_PASSWORD}</code>
+        </p>
+        <div className="space-y-2">
+          {DEMO_ACCOUNTS.map((account) => (
+            <div
+              key={account.email}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-background border border-border"
+            >
+              <div className="text-sm">
+                <p className="font-medium text-foreground">{USER_TYPE_LABELS[account.userType]}</p>
+                <p className="text-foreground/60">{account.email}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={loading}
+                onClick={() => handleDemoLogin(account.email)}
+              >
+                Entrar
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
     </>
   )
 }
@@ -176,7 +258,7 @@ export default function LoginPage() {
       <main className="max-w-md mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold text-foreground mb-2">Iniciar sesión</h1>
         <p className="text-foreground/60 mb-8">
-          Accede con Google o con correo y contraseña.
+          Accede con Google o con correo y contraseña. Elige tu rol al completar el onboarding.
         </p>
 
         <Suspense fallback={<p className="text-foreground/60">Cargando…</p>}>

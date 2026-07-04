@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { MapPin, Phone, Clock, ShieldCheck, Search, Plus, Star, Globe, Navigation, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
+import { NearbyVets } from '@/components/vets/nearby-vets'
+import { getSessionProfile } from '@/lib/auth/profile'
 import { fetchVetFilterOptions, fetchVets } from '@/lib/data/queries'
 
 export const dynamic = 'force-dynamic'
@@ -38,6 +40,8 @@ export default async function VeterinariasPage({ searchParams }: PageProps) {
     fetchVets({ q, city, category, page, pageSize }),
     fetchVetFilterOptions(),
   ])
+  const { userType, profile } = await getSessionProfile()
+  const isVet = userType === 'vet'
   const vets = result.data
   const from = result.count === 0 ? 0 : (result.page - 1) * result.pageSize + 1
   const to = Math.min(result.page * result.pageSize, result.count)
@@ -51,11 +55,27 @@ export default async function VeterinariasPage({ searchParams }: PageProps) {
             <h1 className="text-4xl font-bold text-foreground mb-2">Veterinarias Aliadas</h1>
             <p className="text-foreground/60">Directorio de clínicas, hospitales, pet shops y servicios para mascotas</p>
           </div>
-          <Button size="lg" className="bg-primary hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" /> Registrar veterinaria
-          </Button>
+          {isVet ? (
+            <Link href="/veterinarias/registrar">
+              <Button size="lg" className="bg-primary hover:bg-primary/90">
+                <Plus className="w-4 h-4 mr-2" /> Mi clínica
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/auth/login?redirect=/veterinarias/registrar">
+              <Button size="lg" variant="outline">
+                <Plus className="w-4 h-4 mr-2" /> Registrar veterinaria
+              </Button>
+            </Link>
+          )}
         </div>
 
+        <NearbyVets
+          fallbackLat={profile?.home_latitude}
+          fallbackLng={profile?.home_longitude}
+        />
+
+        <div id="directorio">
         <form className="mb-4 grid grid-cols-1 md:grid-cols-[1fr_220px_240px_auto] gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-3 w-5 h-5 text-foreground/40" />
@@ -223,6 +243,7 @@ export default async function VeterinariasPage({ searchParams }: PageProps) {
             )}
           </>
         )}
+        </div>
       </main>
     </div>
   )

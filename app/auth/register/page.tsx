@@ -8,6 +8,7 @@ import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { createClient } from '@/lib/supabase/client'
 import { USER_TYPE_LABELS, type UserType } from '@/types/auth'
+import { LocationPicker, type HomeLocation } from '@/components/auth/location-picker'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -15,6 +16,14 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [userType, setUserType] = useState<UserType>('person')
+  const [homeLocation, setHomeLocation] = useState<HomeLocation>({
+    label: '',
+    latitude: null,
+    longitude: null,
+    department: null,
+    municipality: null,
+    radiusMeters: 1000,
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -25,6 +34,12 @@ export default function RegisterPage() {
     setError(null)
     setMessage(null)
 
+    if (!homeLocation.latitude || !homeLocation.longitude) {
+      setLoading(false)
+      setError('Selecciona la ubicacion de tu casa para activar alertas cercanas.')
+      return
+    }
+
     const supabase = createClient()
     const { data, error: authError } = await supabase.auth.signUp({
       email,
@@ -34,6 +49,12 @@ export default function RegisterPage() {
           full_name: fullName,
           user_type: userType,
           onboarding_completed: true,
+          home_location_label: homeLocation.label,
+          home_latitude: homeLocation.latitude,
+          home_longitude: homeLocation.longitude,
+          home_department: homeLocation.department,
+          home_municipality: homeLocation.municipality,
+          notification_radius_m: homeLocation.radiusMeters,
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -133,6 +154,8 @@ export default function RegisterPage() {
               {userType === 'foundation' && <p>Podrás crear y gestionar campañas de donación.</p>}
               {userType === 'vet' && <p>Podrás registrar y editar tu clínica veterinaria.</p>}
             </div>
+
+            <LocationPicker value={homeLocation} onChange={setHomeLocation} />
 
             <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90">
               {loading ? 'Creando cuenta…' : 'Registrarse'}

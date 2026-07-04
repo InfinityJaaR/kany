@@ -63,6 +63,39 @@ export type VetRow = {
   phone: string | null
   hours: string | null
   promo: string | null
+  title: string | null
+  latitude: number | null
+  longitude: number | null
+  located_in: string | null
+  category_name: string | null
+  search_string: string | null
+  address: string | null
+  city: string | null
+  website: string | null
+  total_score: number | null
+  url: string | null
+  image_url: string | null
+  description: string | null
+  source_file: string | null
+  place_id: string | null
+  hours_summary: string | null
+  created_at: string
+}
+
+export type FetchVetsOptions = {
+  q?: string
+  city?: string
+  category?: string
+  page?: number
+  pageSize?: number
+}
+
+export type FetchVetsResult = {
+  data: VetRow[]
+  count: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 export async function fetchLostPets(): Promise<LostPetRow[]> {
@@ -121,16 +154,47 @@ export async function fetchFoodPrices(): Promise<FoodPriceRow[]> {
   return data ?? []
 }
 
-export async function fetchVets(): Promise<VetRow[]> {
+export async function fetchVets(options: FetchVetsOptions = {}): Promise<FetchVetsResult> {
+  const page = Math.max(1, options.page ?? 1)
+  const pageSize = options.pageSize ?? 24
+  const from = (page - 1) * pageSize
+  const to = from + pageSize - 1
+
   const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('vets')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let query = supabase.from('vets').select('*', { count: 'exact' })
+
+  const q = options.q?.trim()
+  if (q) {
+    const pattern = `%${q}%`
+    query = query.or(
+      `name.ilike.${pattern},title.ilike.${pattern},services.ilike.${pattern},category_name.ilike.${pattern},search_string.ilike.${pattern},location.ilike.${pattern},city.ilike.${pattern},address.ilike.${pattern}`,
+    )
+  }
+
+  if (options.city) {
+    query = query.eq('city', options.city)
+  }
+
+  if (options.category) {
+    query = query.or(`category_name.eq.${options.category},search_string.eq.${options.category},services.eq.${options.category}`)
+  }
+
+  const { data, error, count } = await query
+    .order('total_score', { ascending: false, nullsFirst: false })
+    .order('name', { ascending: true })
+    .range(from, to)
 
   if (error) {
     console.error('fetchVets:', error.message)
-    return []
+    return { data: [], count: 0, page, pageSize, totalPages: 0 }
   }
-  return data ?? []
+
+  const total = count ?? 0
+  return {
+    data: data ?? [],
+    count: total,
+    page,
+    pageSize,
+    totalPages: total > 0 ? Math.ceil(total / pageSize) : 0,
+  }
 }

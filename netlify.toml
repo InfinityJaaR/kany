@@ -1,0 +1,7 @@
+[build]
+  command = "pnpm build"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "10"
+  # NEXT_PUBLIC_THIRD_MODULE=prices|vets|none — configurar en Netlify UI

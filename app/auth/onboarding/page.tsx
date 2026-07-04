@@ -4,13 +4,22 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
+import { LocationPicker, type HomeLocation } from '@/components/auth/location-picker'
 import { createClient } from '@/lib/supabase/client'
 import { needsOnboarding } from '@/lib/auth/onboarding'
-import { USER_TYPE_LABELS, type UserType } from '@/types/auth'
+import { USER_TYPE_LABELS, type Profile, type UserType } from '@/types/auth'
 
 export default function OnboardingPage() {
   const router = useRouter()
   const [userType, setUserType] = useState<UserType>('person')
+  const [homeLocation, setHomeLocation] = useState<HomeLocation>({
+    label: '',
+    latitude: null,
+    longitude: null,
+    department: null,
+    municipality: null,
+    radiusMeters: 1000,
+  })
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,9 +34,33 @@ export default function OnboardingPage() {
         return
       }
 
-      if (!needsOnboarding(user)) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle<Profile>()
+
+      if (profileError) {
+        setError(profileError.message)
+        setLoading(false)
+        return
+      }
+
+      if (!needsOnboarding(profile)) {
         router.replace('/')
         return
+      }
+
+      if (profile) {
+        setUserType(profile.user_type)
+        setHomeLocation({
+          label: profile.home_location_label ?? '',
+          latitude: profile.home_latitude,
+          longitude: profile.home_longitude,
+          department: profile.home_department,
+          municipality: profile.home_municipality,
+          radiusMeters: profile.notification_radius_m ?? 1000,
+        })
       }
 
       setLoading(false)
@@ -41,6 +74,12 @@ export default function OnboardingPage() {
     setSubmitting(true)
     setError(null)
 
+    if (!homeLocation.latitude || !homeLocation.longitude) {
+      setSubmitting(false)
+      setError('Selecciona la ubicacion de tu casa para activar alertas cercanas.')
+      return
+    }
+
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -51,7 +90,16 @@ export default function OnboardingPage() {
 
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ user_type: userType })
+      .update({
+        user_type: userType,
+        home_location_label: homeLocation.label,
+        home_department: homeLocation.department,
+        home_municipality: homeLocation.municipality,
+        home_latitude: homeLocation.latitude,
+        home_longitude: homeLocation.longitude,
+        notification_radius_m: homeLocation.radiusMeters,
+        onboarding_completed: true,
+      })
       .eq('id', user.id)
 
     if (profileError) {
@@ -60,7 +108,7 @@ export default function OnboardingPage() {
       return
     }
 
-    const { error: metaError } = await supabase.auth.updateUser({
+    await supabase.auth.updateUser({
       data: {
         user_type: userType,
         onboarding_completed: true,
@@ -68,11 +116,6 @@ export default function OnboardingPage() {
     })
 
     setSubmitting(false)
-    if (metaError) {
-      setError(metaError.message)
-      return
-    }
-
     router.push('/')
     router.refresh()
   }
@@ -82,7 +125,7 @@ export default function OnboardingPage() {
       <div className="min-h-screen bg-background">
         <SiteHeader />
         <main className="max-w-md mx-auto px-4 py-12">
-          <p className="text-foreground/60">Cargando…</p>
+          <p className="text-foreground/60">Cargando...</p>
         </main>
       </div>
     )
@@ -94,7 +137,7 @@ export default function OnboardingPage() {
       <main className="max-w-md mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold text-foreground mb-2">Completa tu perfil</h1>
         <p className="text-foreground/60 mb-8">
-          Elige tu tipo de usuario para acceder a las funciones de Kany.
+          Estos datos nos ayudan a mostrarte funciones segun tu rol y activar alertas cercanas.
         </p>
 
         <div className="bg-card border border-border rounded-2xl p-6">
@@ -130,17 +173,19 @@ export default function OnboardingPage() {
             </div>
 
             <div className="text-xs text-foreground/60 space-y-1">
-              {userType === 'person' && <p>Podrás reportar mascotas perdidas o encontradas.</p>}
-              {userType === 'foundation' && <p>Podrás crear y gestionar campañas de donación.</p>}
-              {userType === 'vet' && <p>Podrás registrar y editar tu clínica veterinaria.</p>}
+              {userType === 'person' && <p>Podras reportar mascotas perdidas o encontradas.</p>}
+              {userType === 'foundation' && <p>Podras crear y gestionar campanas de donacion.</p>}
+              {userType === 'vet' && <p>Podras registrar y editar tu clinica veterinaria.</p>}
             </div>
+
+            <LocationPicker value={homeLocation} onChange={setHomeLocation} />
 
             <Button
               type="submit"
               disabled={submitting}
               className="w-full bg-primary hover:bg-primary/90"
             >
-              {submitting ? 'Guardando…' : 'Continuar'}
+              {submitting ? 'Guardando...' : 'Guardar y continuar'}
             </Button>
           </form>
 

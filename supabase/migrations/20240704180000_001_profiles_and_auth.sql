@@ -14,6 +14,7 @@ create table public.profiles (
   home_longitude double precision check (home_longitude between -180 and 180),
   notification_radius_m integer not null default 1000 check (notification_radius_m between 100 and 10000),
   notify_nearby_lost_pets boolean not null default true,
+  onboarding_completed boolean not null default false,
   user_type public.user_type not null default 'person',
   created_at timestamptz not null default now()
 );

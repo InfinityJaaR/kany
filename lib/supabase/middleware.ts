@@ -29,14 +29,27 @@ export async function updateSession(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
+  const { data: profile } = user
+    ? await supabase
+        .from('profiles')
+        .select('onboarding_completed, home_latitude, home_longitude')
+        .eq('id', user.id)
+        .maybeSingle()
+    : { data: null }
+  const incompleteProfile = user ? needsOnboarding(profile) : false
 
-  if (user && needsOnboarding(user) && pathname !== ONBOARDING_PATH) {
+  if (
+    user &&
+    incompleteProfile &&
+    pathname !== ONBOARDING_PATH &&
+    !AUTH_PATHS.includes(pathname)
+  ) {
     const url = request.nextUrl.clone()
     url.pathname = ONBOARDING_PATH
     return NextResponse.redirect(url)
   }
 
-  if (user && !needsOnboarding(user) && pathname === ONBOARDING_PATH) {
+  if (user && !incompleteProfile && pathname === ONBOARDING_PATH) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
@@ -44,7 +57,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && AUTH_PATHS.includes(pathname) && pathname !== '/auth/callback') {
     const url = request.nextUrl.clone()
-    url.pathname = needsOnboarding(user) ? ONBOARDING_PATH : '/'
+    url.pathname = incompleteProfile ? ONBOARDING_PATH : '/'
     return NextResponse.redirect(url)
   }
 

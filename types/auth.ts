@@ -18,6 +18,7 @@ export interface Profile {
   home_longitude: number | null
   notification_radius_m: number
   notify_nearby_lost_pets: boolean
+  onboarding_completed: boolean
   user_type: UserType
   created_at: string
 }

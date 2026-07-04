@@ -12,7 +12,14 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       const { data: { user } } = await supabase.auth.getUser()
-      const destination = user && needsOnboarding(user) ? '/auth/onboarding' : next
+      const { data: profile } = user
+        ? await supabase
+            .from('profiles')
+            .select('onboarding_completed, home_latitude, home_longitude')
+            .eq('id', user.id)
+            .maybeSingle()
+        : { data: null }
+      const destination = user && needsOnboarding(profile) ? '/auth/onboarding' : next
       return NextResponse.redirect(`${origin}${destination}`)
     }
   }

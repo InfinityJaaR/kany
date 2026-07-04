@@ -7,23 +7,12 @@ import { Button } from '@/components/ui/button'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { createClient } from '@/lib/supabase/client'
-import { USER_TYPE_LABELS, type UserType } from '@/types/auth'
-import { LocationPicker, type HomeLocation } from '@/components/auth/location-picker'
 
 export default function RegisterPage() {
   const router = useRouter()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [userType, setUserType] = useState<UserType>('person')
-  const [homeLocation, setHomeLocation] = useState<HomeLocation>({
-    label: '',
-    latitude: null,
-    longitude: null,
-    department: null,
-    municipality: null,
-    radiusMeters: 1000,
-  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -34,12 +23,6 @@ export default function RegisterPage() {
     setError(null)
     setMessage(null)
 
-    if (!homeLocation.latitude || !homeLocation.longitude) {
-      setLoading(false)
-      setError('Selecciona la ubicacion de tu casa para activar alertas cercanas.')
-      return
-    }
-
     const supabase = createClient()
     const { data, error: authError } = await supabase.auth.signUp({
       email,
@@ -47,14 +30,6 @@ export default function RegisterPage() {
       options: {
         data: {
           full_name: fullName,
-          user_type: userType,
-          onboarding_completed: true,
-          home_location_label: homeLocation.label,
-          home_latitude: homeLocation.latitude,
-          home_longitude: homeLocation.longitude,
-          home_department: homeLocation.department,
-          home_municipality: homeLocation.municipality,
-          notification_radius_m: homeLocation.radiusMeters,
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
@@ -67,12 +42,12 @@ export default function RegisterPage() {
     }
 
     if (data.session) {
-      router.push('/')
+      router.push('/auth/onboarding')
       router.refresh()
       return
     }
 
-    setMessage('Cuenta creada. Revisa tu correo para confirmar el registro.')
+    setMessage('Cuenta creada. Revisa tu correo para confirmar el registro y luego completa tu perfil.')
   }
 
   return (
@@ -81,7 +56,7 @@ export default function RegisterPage() {
       <main className="max-w-md mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold text-foreground mb-2">Crear cuenta</h1>
         <p className="text-foreground/60 mb-8">
-          Regístrate con Google o elige tu tipo de usuario para acceder con correo y contraseña.
+          Regístrate con Google o con correo y contraseña. Después completaremos tu perfil de Kany.
         </p>
 
         <GoogleSignInButton className="mb-6" />
@@ -97,32 +72,6 @@ export default function RegisterPage() {
 
         <div className="bg-card border border-border rounded-2xl p-6">
           <form onSubmit={handleRegister} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Tipo de usuario</label>
-              <div className="grid grid-cols-1 gap-2">
-                {(Object.keys(USER_TYPE_LABELS) as UserType[]).map((type) => (
-                  <label
-                    key={type}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
-                      userType === type
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/40'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="userType"
-                      value={type}
-                      checked={userType === type}
-                      onChange={() => setUserType(type)}
-                      className="accent-primary"
-                    />
-                    <span className="text-sm font-medium text-foreground">{USER_TYPE_LABELS[type]}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
             <input
               type="text"
               required
@@ -148,14 +97,6 @@ export default function RegisterPage() {
               placeholder="Contraseña (mín. 6 caracteres)"
               className="w-full px-4 py-2 rounded-lg border border-border bg-background"
             />
-
-            <div className="text-xs text-foreground/60 space-y-1">
-              {userType === 'person' && <p>Podrás reportar mascotas perdidas o encontradas.</p>}
-              {userType === 'foundation' && <p>Podrás crear y gestionar campañas de donación.</p>}
-              {userType === 'vet' && <p>Podrás registrar y editar tu clínica veterinaria.</p>}
-            </div>
-
-            <LocationPicker value={homeLocation} onChange={setHomeLocation} />
 
             <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90">
               {loading ? 'Creando cuenta…' : 'Registrarse'}

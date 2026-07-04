@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { GoogleSignInButton } from '@/components/auth/google-sign-in-button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { createClient } from '@/lib/supabase/client'
+import { needsOnboarding } from '@/lib/auth/onboarding'
 
 const enableMagicLink = process.env.NEXT_PUBLIC_ENABLE_MAGIC_LINK === 'true'
 
@@ -35,12 +36,23 @@ function LoginForm() {
     const supabase = createClient()
     const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
 
-    setLoading(false)
     if (authError) {
+      setLoading(false)
       setError(authError.message)
       return
     }
-    router.push('/')
+
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = user
+      ? await supabase
+          .from('profiles')
+          .select('onboarding_completed, home_latitude, home_longitude')
+          .eq('id', user.id)
+          .maybeSingle()
+      : { data: null }
+
+    setLoading(false)
+    router.push(needsOnboarding(profile) ? '/auth/onboarding' : '/')
     router.refresh()
   }
 

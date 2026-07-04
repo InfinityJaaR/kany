@@ -13,7 +13,7 @@ export default function Home() {
             Ayuda comunitaria para mascotas
           </h2>
           <p className="text-lg text-foreground/60 max-w-2xl mx-auto mb-8">
-            Kany conecta a personas en El Salvador para reportar y encontrar mascotas perdidas.
+            Kany conecta a personas en El Salvador para reportar mascotas perdidas y apoyar campañas de donación.
           </p>
           <Link href="/perdidas">
             <Button size="lg" className="bg-primary hover:bg-primary/90">
@@ -43,6 +43,24 @@ export default function Home() {
               </Link>
               <Link href="/reportar" className="text-primary/80 hover:underline">
                 Reportar mascota →
+              </Link>
+            </div>
+          </article>
+
+          <article className="group bg-card border border-border rounded-2xl p-6 hover:border-primary/50 hover:shadow-lg transition-all">
+            <div className="w-16 h-16 bg-purple-500 dark:bg-purple-600 rounded-xl flex items-center justify-center mb-4 text-2xl">
+              ❤️
+            </div>
+            <h4 className="font-bold text-foreground mb-2">Donaciones</h4>
+            <p className="text-sm text-foreground/60 mb-4">
+              Apoya campañas de fundaciones y rescatistas con donaciones simuladas.
+            </p>
+            <div className="flex flex-col gap-2 text-sm">
+              <Link href="/donaciones" className="text-primary font-medium hover:underline">
+                Ver campañas →
+              </Link>
+              <Link href="/donaciones/nueva" className="text-primary/80 hover:underline">
+                Crear campaña →
               </Link>
             </div>
           </article>

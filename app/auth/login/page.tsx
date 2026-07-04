@@ -1,22 +1,27 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { createClient } from '@/lib/supabase/client'
 
 type LoginMode = 'password' | 'magic'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [mode, setMode] = useState<LoginMode>('password')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const callbackError =
+    searchParams.get('error') === 'auth_callback_error'
+      ? 'No se pudo completar el inicio de sesión. Intenta de nuevo o usa correo y contraseña.'
+      : null
+  const [error, setError] = useState<string | null>(callbackError)
 
   async function handlePasswordLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -59,6 +64,85 @@ export default function LoginPage() {
   }
 
   return (
+    <>
+      <div className="flex gap-2 mb-6">
+        <Button
+          type="button"
+          variant={mode === 'password' ? 'default' : 'outline'}
+          className="flex-1"
+          onClick={() => setMode('password')}
+        >
+          Correo y contraseña
+        </Button>
+        <Button
+          type="button"
+          variant={mode === 'magic' ? 'default' : 'outline'}
+          className="flex-1"
+          onClick={() => setMode('magic')}
+        >
+          Enlace por correo
+        </Button>
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl p-6">
+        {mode === 'password' ? (
+          <form onSubmit={handlePasswordLogin} className="space-y-4">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Correo electrónico"
+              className="w-full px-4 py-2 rounded-lg border border-border bg-background"
+            />
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Contraseña"
+              className="w-full px-4 py-2 rounded-lg border border-border bg-background"
+            />
+            <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90">
+              {loading ? 'Entrando…' : 'Entrar'}
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={handleMagicLink} className="space-y-4">
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Correo electrónico"
+              className="w-full px-4 py-2 rounded-lg border border-border bg-background"
+            />
+            <p className="text-sm text-foreground/60">
+              Te enviaremos un enlace seguro a tu bandeja de entrada. No necesitas contraseña.
+            </p>
+            <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90">
+              {loading ? 'Enviando…' : 'Enviar enlace'}
+            </Button>
+          </form>
+        )}
+
+        {error && (
+          <p className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">
+            {error}
+          </p>
+        )}
+        {message && (
+          <p className="mt-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm">
+            {message}
+          </p>
+        )}
+      </div>
+    </>
+  )
+}
+
+export default function LoginPage() {
+  return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="max-w-md mx-auto px-4 py-12">
@@ -67,78 +151,9 @@ export default function LoginPage() {
           Accede con correo y contraseña o recibe un enlace mágico por correo.
         </p>
 
-        <div className="flex gap-2 mb-6">
-          <Button
-            type="button"
-            variant={mode === 'password' ? 'default' : 'outline'}
-            className="flex-1"
-            onClick={() => setMode('password')}
-          >
-            Correo y contraseña
-          </Button>
-          <Button
-            type="button"
-            variant={mode === 'magic' ? 'default' : 'outline'}
-            className="flex-1"
-            onClick={() => setMode('magic')}
-          >
-            Enlace por correo
-          </Button>
-        </div>
-
-        <div className="bg-card border border-border rounded-2xl p-6">
-          {mode === 'password' ? (
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Correo electrónico"
-                className="w-full px-4 py-2 rounded-lg border border-border bg-background"
-              />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Contraseña"
-                className="w-full px-4 py-2 rounded-lg border border-border bg-background"
-              />
-              <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90">
-                {loading ? 'Entrando…' : 'Entrar'}
-              </Button>
-            </form>
-          ) : (
-            <form onSubmit={handleMagicLink} className="space-y-4">
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Correo electrónico"
-                className="w-full px-4 py-2 rounded-lg border border-border bg-background"
-              />
-              <p className="text-sm text-foreground/60">
-                Te enviaremos un enlace seguro a tu bandeja de entrada. No necesitas contraseña.
-              </p>
-              <Button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90">
-                {loading ? 'Enviando…' : 'Enviar enlace'}
-              </Button>
-            </form>
-          )}
-
-          {error && (
-            <p className="mt-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">
-              {error}
-            </p>
-          )}
-          {message && (
-            <p className="mt-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm">
-              {message}
-            </p>
-          )}
-        </div>
+        <Suspense fallback={<p className="text-foreground/60">Cargando…</p>}>
+          <LoginForm />
+        </Suspense>
 
         <p className="mt-6 text-sm text-center text-foreground/60">
           ¿No tienes cuenta?{' '}

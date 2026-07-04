@@ -98,6 +98,11 @@ export type FetchVetsResult = {
   totalPages: number
 }
 
+export type VetFilterOptions = {
+  cities: string[]
+  categories: string[]
+}
+
 export async function fetchLostPets(): Promise<LostPetRow[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
@@ -154,6 +159,34 @@ export async function fetchFoodPrices(): Promise<FoodPriceRow[]> {
   return data ?? []
 }
 
+export async function fetchVetFilterOptions(): Promise<VetFilterOptions> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('vets')
+    .select('city, location, category_name, search_string, services')
+    .limit(3000)
+
+  if (error) {
+    console.error('fetchVetFilterOptions:', error.message)
+    return { cities: [], categories: [] }
+  }
+
+  const cities = new Set<string>()
+  const categories = new Set<string>()
+
+  for (const vet of data ?? []) {
+    const city = vet.city || vet.location
+    const category = vet.category_name || vet.search_string || vet.services
+    if (city) cities.add(city)
+    if (category) categories.add(category)
+  }
+
+  return {
+    cities: [...cities].sort((a, b) => a.localeCompare(b, 'es')),
+    categories: [...categories].sort((a, b) => a.localeCompare(b, 'es')),
+  }
+}
+
 export async function fetchVets(options: FetchVetsOptions = {}): Promise<FetchVetsResult> {
   const page = Math.max(1, options.page ?? 1)
   const pageSize = options.pageSize ?? 24
@@ -172,7 +205,7 @@ export async function fetchVets(options: FetchVetsOptions = {}): Promise<FetchVe
   }
 
   if (options.city) {
-    query = query.eq('city', options.city)
+    query = query.or(`city.eq.${options.city},location.eq.${options.city}`)
   }
 
   if (options.category) {

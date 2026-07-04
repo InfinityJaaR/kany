@@ -1,4 +1,6 @@
 -- Datos demo basados en data/mock*.ts (solo desarrollo local con supabase db reset)
+-- Si ya corriste este seed antes: usa supabase/seeds/seed_role_flows_update.sql + pnpm seed:demo
+-- Instalación nueva: seed.sql + pnpm seed:demo (ver docs/DEMO_JURADO.md)
 
 insert into public.lost_pets (name, breed, color, location, date_text, description, reward, contact, status)
 values
@@ -26,8 +28,8 @@ values
   ('Cat Chow Gatitos', '3 kg', 21.75, 'Huellitas Shop', 'Disponible'),
   ('NutriCan Adulto', '10 lb', 16.99, 'Agroservicio Central', 'Disponible');
 
-insert into public.vets (name, services, location, phone, hours, promo)
+insert into public.vets (name, services, location, phone, hours, promo, latitude, longitude, city, address)
 values
-  ('Clínica Veterinaria Huellitas', 'Emergencias, Vacunación, Cirugía', 'San Salvador', '+503 2212-3344', 'Lun-Sáb 8:00 AM - 6:00 PM', '10% en consulta para rescatistas'),
-  ('VetCare Santa Tecla', 'Consulta general, Esterilización, Laboratorio', 'Santa Tecla', '+503 2288-1100', 'Todos los días 7:00 AM - 7:00 PM', 'Jornada de vacunación mensual'),
-  ('Animalia 24/7', 'Emergencias 24/7, Hospitalización, Rayos X', 'Antiguo Cuscatlán', '+503 7000-2424', '24 horas', 'Aliada en casos urgentes verificados');
+  ('Clínica Veterinaria Huellitas', 'Emergencias, Vacunación, Cirugía', 'San Salvador', '+503 2212-3344', 'Lun-Sáb 8:00 AM - 6:00 PM', '10% en consulta para rescatistas', 13.6929, -89.1875, 'San Salvador', 'San Salvador'),
+  ('VetCare Santa Tecla', 'Consulta general, Esterilización, Laboratorio', 'Santa Tecla', '+503 2288-1100', 'Todos los días 7:00 AM - 7:00 PM', 'Jornada de vacunación mensual', 13.6769, -89.2795, 'Santa Tecla', 'Santa Tecla'),
+  ('Animalia 24/7', 'Emergencias 24/7, Hospitalización, Rayos X', 'Antiguo Cuscatlán', '+503 7000-2424', '24 horas', 'Aliada en casos urgentes verificados', 13.6649, -89.2532, 'Antiguo Cuscatlán', 'Antiguo Cuscatlán');

@@ -12,6 +12,8 @@ export interface Profile {
   full_name: string | null
   phone: string | null
   home_location_label: string | null
+  home_department: string | null
+  home_municipality: string | null
   home_latitude: number | null
   home_longitude: number | null
   notification_radius_m: number

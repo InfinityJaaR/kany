@@ -1,13 +1,8 @@
--- Ubicacion base del usuario para alertas por cercania
+-- Departamento y municipio detectados para alertas por zona
 
 alter table public.profiles
-  add column if not exists home_location_label text,
   add column if not exists home_department text,
-  add column if not exists home_municipality text,
-  add column if not exists home_latitude double precision check (home_latitude between -90 and 90),
-  add column if not exists home_longitude double precision check (home_longitude between -180 and 180),
-  add column if not exists notification_radius_m integer not null default 1000 check (notification_radius_m between 100 and 10000),
-  add column if not exists notify_nearby_lost_pets boolean not null default true;
+  add column if not exists home_municipality text;
 
 create or replace function public.handle_new_user()
 returns trigger

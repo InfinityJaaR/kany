@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Next.js App',
-  description: 'Next.js project scaffold',
+  title: 'Kany',
+  description: 'Plataforma comunitaria para mascotas perdidas en El Salvador',
   icons: {
     icon: [
       {
@@ -37,7 +37,22 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background" suppressHydrationWarning>
+    <html lang="es" className="bg-background" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const theme = localStorage.getItem('theme');
+                const dark = theme ? theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+                document.documentElement.classList.toggle('dark', dark);
+                document.documentElement.classList.toggle('light', !dark);
+                document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body className="antialiased">{children}</body>
     </html>
   )

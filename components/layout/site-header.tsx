@@ -35,6 +35,12 @@ export function SiteHeader() {
               </Link>
             )}
           </nav>
+          <Link href="/auth/login">
+            <Button variant="outline" size="sm">
+              <span className="hidden sm:inline">Iniciar sesión</span>
+              <span className="sm:hidden">Entrar</span>
+            </Button>
+          </Link>
           <Link href="/">
             <Button variant="outline" size="sm" className="gap-2">
               <Home className="w-4 h-4" />

@@ -1,9 +1,13 @@
 import { MapPin, Phone, Clock, ShieldCheck, Search, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
-import { vets } from '@/data/mockVets'
+import { fetchVets } from '@/lib/data/queries'
 
-export default function VeterinariasPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function VeterinariasPage() {
+  const vets = await fetchVets()
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -26,32 +30,44 @@ export default function VeterinariasPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {vets.map((vet) => (
-            <article key={vet.name} className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                <ShieldCheck className="w-6 h-6 text-primary" />
-              </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">{vet.name}</h2>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {vet.services.map((service) => (
-                  <span key={service} className="text-xs px-2 py-1 rounded-full bg-muted text-foreground/70">
-                    {service}
-                  </span>
-                ))}
-              </div>
-              <div className="space-y-3 text-sm text-foreground/60 mb-4">
-                <p className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {vet.location}</p>
-                <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {vet.phone}</p>
-                <p className="flex items-center gap-2"><Clock className="w-4 h-4" /> {vet.hours}</p>
-              </div>
-              <p className="text-sm p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 mb-4">
-                {vet.promo}
-              </p>
-              <Button className="w-full bg-primary hover:bg-primary/90">Ver contacto</Button>
-            </article>
-          ))}
-        </div>
+        {vets.length === 0 ? (
+          <div className="text-center py-16 bg-card border border-border rounded-2xl">
+            <p className="text-foreground/60">No hay veterinarias registradas. Ejecuta <code className="text-xs bg-muted px-1 rounded">supabase/seed.sql</code>.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {vets.map((vet) => {
+              const services = vet.services?.split(',').map((s) => s.trim()).filter(Boolean) ?? []
+
+              return (
+                <article key={vet.id} className="bg-card border border-border rounded-2xl p-6 hover:shadow-lg transition">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                    <ShieldCheck className="w-6 h-6 text-primary" />
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground mb-2">{vet.name}</h2>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {services.map((service) => (
+                      <span key={service} className="text-xs px-2 py-1 rounded-full bg-muted text-foreground/70">
+                        {service}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="space-y-3 text-sm text-foreground/60 mb-4">
+                    {vet.location && <p className="flex items-center gap-2"><MapPin className="w-4 h-4" /> {vet.location}</p>}
+                    {vet.phone && <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {vet.phone}</p>}
+                    {vet.hours && <p className="flex items-center gap-2"><Clock className="w-4 h-4" /> {vet.hours}</p>}
+                  </div>
+                  {vet.promo && (
+                    <p className="text-sm p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 mb-4">
+                      {vet.promo}
+                    </p>
+                  )}
+                  <Button className="w-full bg-primary hover:bg-primary/90">Ver contacto</Button>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </main>
     </div>
   )

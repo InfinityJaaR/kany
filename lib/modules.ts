@@ -25,7 +25,6 @@ export const REMOVED_ROUTES = [
   '/perros',
   '/gatos',
   '/settings',
-  '/auth',
 ] as const
 
 export function isRemovedRoute(pathname: string): boolean {

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Home } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/layout/theme-toggle'
+import { AuthButton } from '@/components/layout/auth-button'
 import { getThirdModule } from '@/lib/modules'
 
 export function SiteHeader() {
@@ -35,6 +36,7 @@ export function SiteHeader() {
               </Link>
             )}
           </nav>
+          <AuthButton />
           <Link href="/">
             <Button variant="outline" size="sm" className="gap-2">
               <Home className="w-4 h-4" />

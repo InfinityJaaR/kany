@@ -18,6 +18,9 @@ export function SiteHeader() {
             <Link href="/perdidas" className="text-foreground/60 hover:text-foreground transition">
               Perdidas
             </Link>
+            <Link href="/donaciones" className="text-foreground/60 hover:text-foreground transition">
+              Donaciones
+            </Link>
           </nav>
           <Link href="/">
             <Button variant="outline" size="sm" className="gap-2">

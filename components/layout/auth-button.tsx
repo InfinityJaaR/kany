@@ -64,6 +64,11 @@ export function AuthButton() {
       <span className="hidden md:inline text-sm text-foreground/70 max-w-[120px] truncate">
         {displayName}
       </span>
+      <Link href="/perfil">
+        <Button variant="outline" size="sm">
+          Perfil
+        </Button>
+      </Link>
       <Button variant="outline" size="sm" onClick={handleSignOut}>
         Salir
       </Button>

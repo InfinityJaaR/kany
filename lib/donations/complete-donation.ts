@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/client'
 import type { PayPalOrderType } from '@/lib/paypal'
 
 export interface CompleteDonationInput {
@@ -62,21 +63,8 @@ export async function completeDonationAfterCapture(
   }
 
   if (input.type === 'campaign') {
-    const title = input.campaignTitle ? `"${input.campaignTitle}"` : 'la campana'
     if (!input.campaignId) {
       return { success: false, message: 'Falta el identificador de la campaña.' }
-    }
-
-    const { error } = await supabase.rpc('donate_to_campaign', {
-      p_campaign_id: Number(input.campaignId),
-      p_amount: amount,
-    })
-
-    if (error) {
-      const message = error.message.includes('Not authenticated')
-        ? 'Debes iniciar sesión para donar.'
-        : error.message
-      return { success: false, message }
     }
 
     await notifyCampaignDonationN8n(Number(input.campaignId), amount)

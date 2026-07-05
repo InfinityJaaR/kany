@@ -10,10 +10,12 @@ Cuentas preconfiguradas para probar los flujos por rol durante el hackathon.
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `NEXT_PUBLIC_THIRD_MODULE=vets`
+   - `PAYPAL_MODE=simulated` (donaciones PayPal simuladas; ver `docs/PAYPAL_SANDBOX.md`)
 3. En Supabase Dashboard → Authentication → Providers → Email: **Confirm email = OFF** (login inmediato).
 4. Datos demo de contenido:
    - **Instalación nueva:** `supabase/seed.sql` en el SQL Editor (o `pnpm db:reset` en local).
    - **Ya corriste seed.sql antes:** solo el incremental `supabase/seeds/seed_role_flows_update.sql` (no duplica mascotas ni campañas).
+5. Migraciones de donaciones: `011_donate_to_campaign.sql` y `012_platform_donations.sql`.
 
 ## Actualizar base existente (sin duplicar datos)
 
@@ -58,7 +60,7 @@ También visibles en `/auth/login` bajo **Cuentas demo para jurado**.
 
 1. Iniciar sesión → onboarding ya completado
 2. `/reportar` — publicar mascota perdida o encontrada
-3. `/donaciones` — donar $5/$10/$25 (simulado)
+3. `/donaciones` — donar con PayPal simulado (pestaña mock; ver `docs/PAYPAL_SANDBOX.md`)
 4. `/veterinarias` — **Usar mi ubicación** para ver clínicas cercanas
 
 ### 3. Fundación (`demo.fundacion@kany.sv`)
@@ -87,6 +89,8 @@ Si intentas una acción de otro rol (ej. crear campaña como usuario), verás un
 | Problema | Solución |
 |----------|----------|
 | "Cuenta demo no encontrada" | Ejecutar `pnpm seed:demo` |
-| Donar falla con error RPC | Aplicar migración `011_donate_to_campaign.sql` |
+| Donar falla con error RPC | Aplicar migraciones `011_donate_to_campaign.sql` y `012_platform_donations.sql` |
+| Popup de PayPal bloqueado | Permitir popups en el navegador para localhost |
+| PayPal sandbox no conecta | Ver `docs/PAYPAL_SANDBOX.md` — usar `PAYPAL_MODE=simulated` para demo |
 | No aparecen veterinarias cerca | Ejecutar `supabase/seeds/seed_role_flows_update.sql` o importar CSV de vets con lat/lng |
 | Email no confirmado | Desactivar confirmación en Supabase Auth settings |

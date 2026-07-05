@@ -2,20 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Heart } from 'lucide-react'
+import { HeartHandshake } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { usePayPalDonation } from '@/lib/donations/use-paypal-donation'
 import { useProfile } from '@/lib/auth/use-profile'
 
 const PRESET_AMOUNTS = [5, 10, 25]
 
-type DonateButtonProps = {
-  campaignId: number
-  campaignTitle: string
+type SiteDonateButtonProps = {
   paypalMode?: 'simulated' | 'sandbox'
 }
 
-export function DonateButton({ campaignId, campaignTitle, paypalMode = 'simulated' }: DonateButtonProps) {
+export function SiteDonateButton({ paypalMode = 'simulated' }: SiteDonateButtonProps) {
   const router = useRouter()
   const { isLoggedIn, loading } = useProfile()
   const { startDonation, isLoading, feedback, clearFeedback } = usePayPalDonation()
@@ -50,9 +48,7 @@ export function DonateButton({ campaignId, campaignTitle, paypalMode = 'simulate
 
     await startDonation({
       amount: finalAmount,
-      type: 'campaign',
-      campaignId,
-      campaignTitle,
+      type: 'site_support',
     })
   }
 
@@ -63,18 +59,22 @@ export function DonateButton({ campaignId, campaignTitle, paypalMode = 'simulate
   return (
     <>
       <Button
-        className="flex-1 bg-primary hover:bg-primary/90"
+        size="lg"
+        className="bg-primary hover:bg-primary/90"
         onClick={handleOpen}
         disabled={isLoading}
       >
-        <Heart className="w-4 h-4 mr-2" /> {isLoading ? 'Abriendo PayPal…' : 'Donar'}
+        <HeartHandshake className="w-4 h-4 mr-2" />
+        {isLoading ? 'Abriendo PayPal…' : 'Donar a la plataforma'}
       </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h3 className="text-lg font-bold text-foreground mb-1">Donar a campaña</h3>
-            <p className="text-sm text-foreground/60 mb-4">{campaignTitle}</p>
+            <h3 className="text-lg font-bold text-foreground mb-1">Apoyar la plataforma Kany</h3>
+            <p className="text-sm text-foreground/60 mb-4">
+              Tu donación ayuda a mantener la plataforma comunitaria.
+            </p>
             <p className="text-xs text-foreground/50 mb-4">
               Pago con {modeLabel}. Se abrirá una pestaña de checkout.
             </p>

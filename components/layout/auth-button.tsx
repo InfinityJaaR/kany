@@ -3,12 +3,25 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MessageCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { LogIn, LogOut, MessageCircle, User, UserCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import {
+  MobileMenuButton,
+  MobileMenuLabel,
+  MobileMenuLink,
+  mobileMenuLinkClass,
+} from '@/components/layout/mobile-menu-link'
+import { desktopNavLinkClass, navLinkClass } from '@/lib/navigation/site-nav'
 import type { User } from '@supabase/supabase-js'
 
-export function AuthButton() {
+type AuthNavLinksProps = {
+  className?: string
+  onNavigate?: () => void
+  vertical?: boolean
+  mobile?: boolean
+}
+
+export function AuthNavLinks({ className, onNavigate, vertical = false, mobile = false }: AuthNavLinksProps) {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -32,25 +45,27 @@ export function AuthButton() {
     const supabase = createClient()
     await supabase.auth.signOut()
     setUser(null)
+    onNavigate?.()
     router.push('/')
     router.refresh()
   }
 
   if (loading) {
-    return (
-      <Button variant="outline" size="sm" disabled>
-        …
-      </Button>
-    )
+    return <span className={`text-sm text-foreground/40 ${className ?? ''}`}>…</span>
   }
 
   if (!user) {
+    if (mobile) {
+      return (
+        <MobileMenuLink href="/auth/login" icon={LogIn} onClick={onNavigate}>
+          Iniciar sesión
+        </MobileMenuLink>
+      )
+    }
+
     return (
-      <Link href="/auth/login">
-        <Button variant="outline" size="sm">
-          <span className="hidden sm:inline">Iniciar sesión</span>
-          <span className="sm:hidden">Entrar</span>
-        </Button>
+      <Link href="/auth/login" className={`${desktopNavLinkClass} ${className ?? ''}`} onClick={onNavigate}>
+        Iniciar sesión
       </Link>
     )
   }
@@ -60,25 +75,51 @@ export function AuthButton() {
     user.email?.split('@')[0] ||
     'Usuario'
 
+  if (mobile && vertical) {
+    return (
+      <div className={`flex flex-col items-stretch gap-1 ${className ?? ''}`}>
+        <MobileMenuLabel icon={UserCircle}>{displayName}</MobileMenuLabel>
+        <MobileMenuLink href="/perfil" icon={User} onClick={onNavigate}>
+          Perfil
+        </MobileMenuLink>
+        <MobileMenuLink href="/mensajes" icon={MessageCircle} onClick={onNavigate}>
+          Mensajes
+        </MobileMenuLink>
+        <MobileMenuButton icon={LogOut} onClick={handleSignOut}>
+          Salir
+        </MobileMenuButton>
+      </div>
+    )
+  }
+
+  const itemClass = vertical
+    ? `${navLinkClass} w-full px-1 py-2 text-left`
+    : desktopNavLinkClass
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="hidden md:inline text-sm text-foreground/70 max-w-[120px] truncate">
+    <div className={`flex ${vertical ? 'flex-col items-stretch gap-1' : 'items-center gap-4'} ${className ?? ''}`}>
+      <span className="max-w-[140px] truncate text-sm font-medium text-foreground/80">
         {displayName}
       </span>
-      <Link href="/perfil">
-        <Button variant="outline" size="sm">
-          Perfil
-        </Button>
+      <Link href="/perfil" className={itemClass} onClick={onNavigate}>
+        Perfil
       </Link>
-      <Link href="/mensajes">
-        <Button variant="outline" size="sm">
-          <MessageCircle className="w-4 h-4" />
-          <span className="hidden sm:inline">Mensajes</span>
-        </Button>
+      <Link href="/mensajes" className={itemClass} onClick={onNavigate}>
+        Mensajes
       </Link>
-      <Button variant="outline" size="sm" onClick={handleSignOut}>
+      <button
+        type="button"
+        onClick={handleSignOut}
+        className={`inline-flex items-center gap-1.5 ${itemClass}`}
+      >
+        <LogOut className="h-4 w-4" />
         Salir
-      </Button>
+      </button>
     </div>
   )
+}
+
+/** @deprecated Usa AuthNavLinks */
+export function AuthButton({ className }: { className?: string }) {
+  return <AuthNavLinks className={className} />
 }

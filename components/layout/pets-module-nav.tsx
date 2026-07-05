@@ -2,10 +2,11 @@ import Link from 'next/link'
 
 const links = [
   { href: '/perdidas', label: 'Perdidas' },
-  { href: '/encontradas', label: 'Encontradas' },
+  { href: '/encontradas', label: 'Encontré una mascota' },
+  { href: '/reportar', label: 'Reportar' },
 ] as const
 
-export function PetsModuleNav({ active }: { active: 'perdidas' | 'encontradas' }) {
+export function PetsModuleNav({ active }: { active: 'perdidas' | 'encontradas' | 'reportar' }) {
   return (
     <nav className="mb-6 flex flex-wrap gap-2">
       {links.map((link) => (

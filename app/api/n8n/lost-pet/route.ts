@@ -8,6 +8,10 @@ type RequestBody = {
   actorEmail?: string
 }
 
+type ConversationRow = {
+  id: string
+}
+
 type ProfileRow = {
   id: string
   email: string | null
@@ -40,6 +44,53 @@ type LostPetRow = {
 
 function getAppUrl(request: Request) {
   return process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin
+}
+
+async function getOrCreateFoundConversation({
+  supabase,
+  pet,
+  actorEmail,
+}: {
+  supabase: ReturnType<typeof createAdminClient>
+  pet: LostPetRow
+  actorEmail?: string
+}) {
+  if (!actorEmail || !pet.reported_by) return null
+
+  const { data: actor } = await supabase
+    .from('profiles')
+    .select('id, email, full_name')
+    .eq('email', actorEmail)
+    .maybeSingle<Pick<ProfileRow, 'id' | 'email' | 'full_name'>>()
+
+  if (!actor || actor.id === pet.reported_by) return null
+
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('lost_pet_id', pet.id)
+    .eq('owner_id', pet.reported_by)
+    .eq('participant_id', actor.id)
+    .maybeSingle<ConversationRow>()
+
+  if (existing) return existing.id
+
+  const { data: conversation, error } = await supabase
+    .from('conversations')
+    .insert({
+      lost_pet_id: pet.id,
+      owner_id: pet.reported_by,
+      participant_id: actor.id,
+    })
+    .select('id')
+    .single<ConversationRow>()
+
+  if (error) {
+    console.error('found conversation:', error.message)
+    return null
+  }
+
+  return conversation.id
 }
 
 async function notifyN8n(payload: unknown) {
@@ -101,9 +152,15 @@ export async function POST(request: Request) {
     const event: 'lost' | 'found' = body.event === 'found' ? 'found' : 'lost'
 
     let userEmail: string[] | string | null
+    let conversationId: string | null = null
 
     if (event === 'found') {
       userEmail = body.actorEmail ?? null
+      conversationId = await getOrCreateFoundConversation({
+        supabase,
+        pet,
+        actorEmail: body.actorEmail,
+      })
     } else {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -137,6 +194,9 @@ export async function POST(request: Request) {
     }
 
     const publicationLink = `${getAppUrl(request)}/mascotas/perdidas/${pet.id}`
+    const chatLink = conversationId
+      ? `${getAppUrl(request)}/mensajes?conversation=${conversationId}`
+      : null
     const payload = {
       event,
       name: pet.name,
@@ -146,7 +206,9 @@ export async function POST(request: Request) {
       description: pet.description,
       reward: pet.reward,
       email: reporter?.email ?? null,
-      app_url: publicationLink,
+      app_url: chatLink ?? publicationLink,
+      publication_url: publicationLink,
+      chat_url: chatLink,
       user_email: userEmail,
     }
 

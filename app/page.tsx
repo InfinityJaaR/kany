@@ -1,3 +1,4 @@
+import { DashboardHero } from '@/components/home/dashboard-hero'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { Button } from '@/components/ui/button'
@@ -5,7 +6,6 @@ import { SiteHeaderSuspense } from '@/components/layout/site-header'
 import { WrongRoleBanner } from '@/components/layout/wrong-role-banner'
 import { getSessionProfile } from '@/lib/auth/profile'
 import { getThirdModule } from '@/lib/modules'
-import { USER_TYPE_LABELS } from '@/types/auth'
 
 export default async function HomePage() {
   const { userType, isLoggedIn, profile } = await getSessionProfile()
@@ -22,8 +22,7 @@ export default async function HomePage() {
         }
       />
 
-      <section className="bg-gradient-to-b from-primary/5 to-transparent border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+      <DashboardHero>
           {!isLoggedIn ? (
             <>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
@@ -52,7 +51,6 @@ export default async function HomePage() {
             </>
           ) : userType === 'person' ? (
             <>
-              <p className="text-sm text-primary font-medium mb-2">{USER_TYPE_LABELS.person}</p>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
                 Hola, {displayName}
               </h2>
@@ -78,7 +76,6 @@ export default async function HomePage() {
             </>
           ) : userType === 'foundation' ? (
             <>
-              <p className="text-sm text-primary font-medium mb-2">{USER_TYPE_LABELS.foundation}</p>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
                 Panel de fundación
               </h2>
@@ -96,7 +93,6 @@ export default async function HomePage() {
             </>
           ) : userType === 'vet' ? (
             <>
-              <p className="text-sm text-primary font-medium mb-2">{USER_TYPE_LABELS.vet}</p>
               <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
                 Panel de veterinaria
               </h2>
@@ -122,10 +118,9 @@ export default async function HomePage() {
               </Link>
             </>
           )}
-        </div>
-      </section>
+      </DashboardHero>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <section id="modulos" className="scroll-mt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h3 className="text-2xl font-bold text-foreground mb-8">Módulos</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <article className="group bg-card border border-border rounded-2xl p-6 hover:border-primary/50 hover:shadow-lg transition-all">

@@ -1,0 +1,15 @@
+{
+  "width": 367,
+  "height": 200,
+  "isSquare": false,
+  "validFavicon": false,
+  "validHeader": true,
+  "faviconGenerated": true,
+  "faviconSource": "assets/branding/logo-source.png (recorte cuadrado)",
+  "faviconSizes": [
+    16,
+    32,
+    180,
+    192
+  ]
+}

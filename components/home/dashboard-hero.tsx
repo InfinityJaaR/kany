@@ -11,6 +11,7 @@ import {
 
 type DashboardHeroProps = {
   children: ReactNode
+  metricsFooter?: ReactNode
 }
 
 function subscribeViewport(cb: () => void) {
@@ -18,7 +19,7 @@ function subscribeViewport(cb: () => void) {
   return () => window.removeEventListener('resize', cb)
 }
 
-export function DashboardHero({ children }: DashboardHeroProps) {
+export function DashboardHero({ children, metricsFooter }: DashboardHeroProps) {
   const innerRef = useRef<HTMLDivElement>(null)
   const [collapsed, setCollapsed] = useState(false)
   const isMobile = useSyncExternalStore(
@@ -110,7 +111,7 @@ export function DashboardHero({ children }: DashboardHeroProps) {
       >
         <div
           ref={innerRef}
-          className="relative flex min-h-[var(--hero-min-height)] flex-col justify-center"
+          className="relative flex min-h-[var(--hero-min-height)] flex-col"
           style={
             {
               '--hero-min-height': dashboardHeroMinHeight(isMobile),
@@ -118,9 +119,14 @@ export function DashboardHero({ children }: DashboardHeroProps) {
           }
         >
           <HeroVideoBackground paused={autoCollapse} />
-          <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
+          <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-4 py-12 text-center sm:px-6 md:py-14 md:text-left lg:px-8">
             {children}
           </div>
+          {metricsFooter ? (
+            <div className="relative z-10 shrink-0 border-t border-border/40 bg-muted/70 backdrop-blur-md">
+              {metricsFooter}
+            </div>
+          ) : null}
         </div>
       </div>
     </section>

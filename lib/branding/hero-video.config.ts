@@ -13,6 +13,18 @@
 export const heroVideoConfig = {
   src: '/video/fondoanimado.mp4',
 
+  /** Velocidad de reproducción (1 = normal; más bajo = más lento) */
+  playbackRate: 0.8,
+
+  /**
+   * Loop continuo con dos videos en crossfade (sin salto al reiniciar).
+   * Segundos antes del final en que arranca el segundo video encima del primero.
+   */
+  loopOverlapSec: 0.8,
+
+  /** Duración del fundido entre capas de video al reiniciar el ciclo */
+  loopCrossfadeMs: 700,
+
   light: {
     video: {
       opacity: 0.9,

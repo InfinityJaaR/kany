@@ -1,16 +1,17 @@
 /**
  * Comportamiento del bloque Dashboard (hero de inicio).
  *
- * collapseScrollRatio: al bajar este % de la altura del hero, se cierra solo (solo desktop).
+ * collapseScrollRatio: al bajar este % de la altura del hero, se cierra solo (si autoCollapse está activo).
  * modulesPeekPx: cuántos px de la sección Módulos se asoman abajo al cargar.
- * autoCollapseOnMobile: false evita el salto brusco de scroll en móvil.
+ * autoCollapseOnDesktop / autoCollapseOnMobile: false = scroll natural sin saltos forzados.
  */
 export const dashboardHeroConfig = {
   collapseScrollRatio: 0.5,
+  autoCollapseOnDesktop: false,
   autoCollapseOnMobile: false,
   modulesSectionId: 'modulos',
   headerHeightPx: 64,
-  modulesPeekPx: 72,
+  modulesPeekPx: 48,
   /** Mobile: un poco más de asomo de módulos al cargar. */
   mobileModulesPeekPx: 100,
   collapseDurationMs: 900,
@@ -27,7 +28,7 @@ export function isMobileViewport() {
 }
 
 export function shouldAutoCollapseHero() {
-  if (typeof window === 'undefined') return true
+  if (typeof window === 'undefined') return false
   if (isMobileViewport()) return dashboardHeroConfig.autoCollapseOnMobile
-  return true
+  return dashboardHeroConfig.autoCollapseOnDesktop
 }

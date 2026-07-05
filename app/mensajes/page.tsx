@@ -42,6 +42,7 @@ type ConversationView = ConversationRow & {
   pet?: LostPetRow
   otherProfile?: ProfileRow
   lastMessage?: MessageRow
+  unreadCount: number
 }
 
 function formatTime(value: string) {
@@ -53,6 +54,14 @@ function formatTime(value: string) {
 
 function displayName(profile?: ProfileRow) {
   return profile?.full_name || profile?.email?.split('@')[0] || 'Usuario'
+}
+
+function sortConversations(conversations: ConversationView[]) {
+  return [...conversations].sort((a, b) => {
+    const aTime = a.lastMessage?.created_at ?? a.updated_at
+    const bTime = b.lastMessage?.created_at ?? b.updated_at
+    return new Date(bTime).getTime() - new Date(aTime).getTime()
+  })
 }
 
 function MessagesContent() {
@@ -124,10 +133,17 @@ function MessagesContent() {
       const petsById = new Map((pets ?? []).map((pet) => [pet.id, pet as LostPetRow]))
       const profilesById = new Map((profiles ?? []).map((profile) => [profile.id, profile as ProfileRow]))
       const lastMessageByConversation = new Map<string, MessageRow>()
+      const unreadByConversation = new Map<string, number>()
 
       for (const message of (lastMessages ?? []) as MessageRow[]) {
         if (!lastMessageByConversation.has(message.conversation_id)) {
           lastMessageByConversation.set(message.conversation_id, message)
+        }
+        if (message.sender_id !== user.id && !message.read_at) {
+          unreadByConversation.set(
+            message.conversation_id,
+            (unreadByConversation.get(message.conversation_id) ?? 0) + 1,
+          )
         }
       }
 
@@ -138,10 +154,11 @@ function MessagesContent() {
           pet: petsById.get(conversation.lost_pet_id),
           otherProfile: profilesById.get(otherId),
           lastMessage: lastMessageByConversation.get(conversation.id),
+          unreadCount: unreadByConversation.get(conversation.id) ?? 0,
         }
       })
 
-      setConversations(hydrated)
+      setConversations(sortConversations(hydrated))
       setLoading(false)
 
       if (!selectedId && hydrated[0]) {
@@ -151,6 +168,46 @@ function MessagesContent() {
 
     loadConversations()
   }, [router, selectedId])
+
+  useEffect(() => {
+    if (!userId) return
+
+    const supabase = createClient()
+    const channel = supabase
+      .channel(`messages:inbox:${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          const incoming = payload.new as MessageRow
+          setConversations((current) =>
+            sortConversations(
+              current.map((conversation) => {
+                if (conversation.id !== incoming.conversation_id) return conversation
+
+                const isSelected = conversation.id === selectedConversation?.id
+                const isMine = incoming.sender_id === userId
+                return {
+                  ...conversation,
+                  updated_at: incoming.created_at,
+                  lastMessage: incoming,
+                  unreadCount: !isMine && !isSelected ? conversation.unreadCount + 1 : conversation.unreadCount,
+                }
+              }),
+            ),
+          )
+        },
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [selectedConversation?.id, userId])
 
   useEffect(() => {
     if (!selectedConversation?.id) {
@@ -173,7 +230,34 @@ function MessagesContent() {
         setError(messagesError.message)
         return
       }
-      setMessages((data ?? []) as MessageRow[])
+      const loadedMessages = (data ?? []) as MessageRow[]
+
+      if (userId) {
+        const readAt = new Date().toISOString()
+        await supabase
+          .from('messages')
+          .update({ read_at: readAt })
+          .eq('conversation_id', selectedConversation!.id)
+          .neq('sender_id', userId)
+          .is('read_at', null)
+
+        setMessages(
+          loadedMessages.map((message) =>
+            message.sender_id === userId || message.read_at
+              ? message
+              : { ...message, read_at: readAt },
+          ),
+        )
+        setConversations((current) =>
+          current.map((conversation) =>
+            conversation.id === selectedConversation!.id
+              ? { ...conversation, unreadCount: 0 }
+              : conversation,
+          ),
+        )
+      } else {
+        setMessages(loadedMessages)
+      }
     }
 
     loadMessages()
@@ -195,6 +279,36 @@ function MessagesContent() {
               ? current
               : [...current, incoming],
           )
+
+          if (userId && incoming.sender_id !== userId) {
+            const readAt = new Date().toISOString()
+            supabase
+              .from('messages')
+              .update({ read_at: readAt })
+              .eq('id', incoming.id)
+              .then(() => {
+                setMessages((current) =>
+                  current.map((message) =>
+                    message.id === incoming.id ? { ...message, read_at: readAt } : message,
+                  ),
+                )
+              })
+          }
+        },
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConversation.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as MessageRow
+          setMessages((current) =>
+            current.map((message) => (message.id === updated.id ? updated : message)),
+          )
         },
       )
       .subscribe()
@@ -203,7 +317,7 @@ function MessagesContent() {
       mounted = false
       supabase.removeChannel(channel)
     }
-  }, [selectedConversation?.id])
+  }, [selectedConversation?.id, userId])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -298,12 +412,21 @@ function MessagesContent() {
                       <p className={`truncate text-sm ${active ? 'text-primary-foreground/70' : 'text-foreground/55'}`}>
                         {displayName(conversation.otherProfile)}
                       </p>
-                      {conversation.lastMessage && (
-                        <p className={`truncate text-xs ${active ? 'text-primary-foreground/60' : 'text-foreground/45'}`}>
-                          {conversation.lastMessage.body}
-                        </p>
-                      )}
+                        {conversation.lastMessage && (
+                          <p className={`truncate text-xs ${active ? 'text-primary-foreground/60' : 'text-foreground/45'}`}>
+                            {conversation.lastMessage.body}
+                          </p>
+                        )}
                     </div>
+                    {conversation.unreadCount > 0 && (
+                      <span
+                        className={`ml-auto flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs font-semibold ${
+                          active ? 'bg-primary-foreground text-primary' : 'bg-primary text-primary-foreground'
+                        }`}
+                      >
+                        {conversation.unreadCount}
+                      </span>
+                    )}
                   </button>
                 )
               })
@@ -356,6 +479,7 @@ function MessagesContent() {
                           <p className="whitespace-pre-wrap break-words">{message.body}</p>
                           <p className={`mt-1 text-[11px] ${mine ? 'text-primary-foreground/70' : 'text-foreground/45'}`}>
                             {formatTime(message.created_at)}
+                            {mine && message.read_at ? ' · Visto' : ''}
                           </p>
                         </div>
                       </div>

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { GeistSans } from 'geist/font/sans'
 import logoMeta from '@/lib/branding/logo-meta.json'
 import { hasTabIcon, type LogoMeta } from '@/lib/branding/logo'
 import './globals.css'
@@ -53,7 +54,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className={`${GeistSans.className} antialiased`}>{children}</body>
     </html>
   )
 }

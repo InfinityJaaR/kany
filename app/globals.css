@@ -161,3 +161,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes metrics-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--marquee-shift, 50%)));
+  }
+}
+
+@layer utilities {
+  .animate-metrics-marquee {
+    animation: metrics-marquee linear infinite;
+  }
+
+  .animate-metrics-marquee:hover {
+    animation-play-state: paused;
+  }
+}

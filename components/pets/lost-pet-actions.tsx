@@ -18,6 +18,12 @@ type MarkFoundButtonProps = {
   className?: string
 }
 
+type FoundPetLeadButtonProps = {
+  petId: number
+  petName: string
+  className?: string
+}
+
 function getAbsoluteUrl(path: string) {
   if (path.startsWith('http')) return path
   return `${window.location.origin}${path}`
@@ -109,6 +115,63 @@ export function MarkFoundButton({ petId, petName, className }: MarkFoundButtonPr
         <CheckCircle className="w-4 h-4" />
         {loading ? 'Actualizando...' : 'Marcar como encontrada'}
       </Button>
+      {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
+    </div>
+  )
+}
+
+export function FoundPetLeadButton({ petId, petName, className }: FoundPetLeadButtonProps) {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function notifyOwner() {
+    setLoading(true)
+    setMessage(null)
+    setError(null)
+
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      router.push('/auth/login?redirect=/encontradas')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/n8n/lost-pet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lostPetId: petId,
+          event: 'found',
+          actorEmail: user.email,
+        }),
+      })
+      const data = (await response.json()) as { error?: string }
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'No se pudo avisar al dueño.')
+      }
+
+      setMessage(`Avisamos al dueño de ${petName}. El enlace del correo abrirá este chat.`)
+    } catch (notificationError) {
+      setError(notificationError instanceof Error ? notificationError.message : 'No se pudo avisar al dueño.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className={className}>
+      <Button type="button" onClick={notifyOwner} disabled={loading} className="w-full bg-primary hover:bg-primary/90">
+        <CheckCircle className="w-4 h-4" />
+        {loading ? 'Avisando...' : 'Creo que encontre esta mascota'}
+      </Button>
+      {message && <p className="mt-2 text-sm text-green-700 dark:text-green-400">{message}</p>}
       {error && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
     </div>
   )

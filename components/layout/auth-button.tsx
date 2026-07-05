@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { LogIn, LogOut, MessageCircle, User, UserCircle } from 'lucide-react'
+import { LogIn, LogOut, MessageCircle, User as UserIcon, UserCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import {
   MobileMenuButton,
@@ -79,7 +79,7 @@ export function AuthNavLinks({ className, onNavigate, vertical = false, mobile =
     return (
       <div className={`flex flex-col items-stretch gap-1 ${className ?? ''}`}>
         <MobileMenuLabel icon={UserCircle}>{displayName}</MobileMenuLabel>
-        <MobileMenuLink href="/perfil" icon={User} onClick={onNavigate}>
+        <MobileMenuLink href="/perfil" icon={UserIcon} onClick={onNavigate}>
           Perfil
         </MobileMenuLink>
         <MobileMenuLink href="/mensajes" icon={MessageCircle} onClick={onNavigate}>

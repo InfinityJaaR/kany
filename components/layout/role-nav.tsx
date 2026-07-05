@@ -35,6 +35,9 @@ export function RoleNav() {
       <Link href="/donaciones" className="text-foreground/60 hover:text-foreground transition">
         Donaciones
       </Link>
+      <Link href="/petshopping" className="text-foreground/60 hover:text-foreground transition">
+        PetShopping
+      </Link>
       {third === 'vets' && (
         <Link href="/veterinarias" className="text-foreground/60 hover:text-foreground transition">
           Veterinarias

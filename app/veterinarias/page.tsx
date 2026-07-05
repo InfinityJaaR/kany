@@ -3,6 +3,7 @@ import { MapPin, Phone, Clock, ShieldCheck, Search, Plus, Star, Globe, Navigatio
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { NearbyVets } from '@/components/vets/nearby-vets'
+import { VetCardImage } from '@/components/vets/vet-card-image'
 import { getSessionProfile } from '@/lib/auth/profile'
 import { fetchVetFilterOptions, fetchVets } from '@/lib/data/queries'
 
@@ -26,6 +27,40 @@ function buildVetsHref(params: Record<string, string | number | undefined>) {
 
   const query = search.toString()
   return query ? `/veterinarias?${query}` : '/veterinarias'
+}
+
+function getVetVisual(vet: { name: string | null; title: string | null; services: string | null; category_name: string | null; search_string: string | null }) {
+  const text = `${vet.name ?? ''} ${vet.title ?? ''} ${vet.services ?? ''} ${vet.category_name ?? ''} ${vet.search_string ?? ''}`.toLowerCase()
+
+  if (text.includes('groom') || text.includes('peluquer') || text.includes('baño')) {
+    return {
+      emoji: '✂️',
+      label: 'Grooming & estética',
+      gradient: 'from-pink-500 via-rose-400 to-orange-300',
+    }
+  }
+
+  if (text.includes('pet shop') || text.includes('tienda') || text.includes('accesorio') || text.includes('alimento')) {
+    return {
+      emoji: '🛒',
+      label: 'Pet shop',
+      gradient: 'from-emerald-500 via-teal-400 to-cyan-300',
+    }
+  }
+
+  if (text.includes('hospital') || text.includes('emergencia') || text.includes('24')) {
+    return {
+      emoji: '🏥',
+      label: 'Hospital veterinario',
+      gradient: 'from-blue-600 via-sky-500 to-cyan-300',
+    }
+  }
+
+  return {
+    emoji: '🐾',
+    label: 'Clínica veterinaria',
+    gradient: 'from-primary via-accent to-purple-400',
+  }
 }
 
 export default async function VeterinariasPage({ searchParams }: PageProps) {
@@ -144,19 +179,19 @@ export default async function VeterinariasPage({ searchParams }: PageProps) {
                 const location = vet.location || vet.city || vet.address
                 const hours = vet.hours || vet.hours_summary
                 const mapsUrl = vet.url || (vet.latitude && vet.longitude ? `https://www.google.com/maps?q=${vet.latitude},${vet.longitude}` : null)
+                const visual = getVetVisual(vet)
 
                 return (
-                  <article key={vet.id} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition">
-                    {vet.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={vet.image_url} alt={name} className="w-full h-40 object-cover" />
-                    ) : (
-                      <div className="h-40 bg-primary/10 flex items-center justify-center">
-                        <ShieldCheck className="w-12 h-12 text-primary" />
-                      </div>
-                    )}
+                  <article key={vet.id} className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition h-full flex flex-col">
+                    <VetCardImage
+                      imageUrl={vet.image_url}
+                      name={name}
+                      emoji={visual.emoji}
+                      label={visual.label}
+                      gradient={visual.gradient}
+                    />
 
-                    <div className="p-6">
+                    <div className="p-6 flex flex-col flex-1">
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <h2 className="text-xl font-bold text-foreground">{name}</h2>
                         {vet.total_score && (
@@ -187,7 +222,7 @@ export default async function VeterinariasPage({ searchParams }: PageProps) {
                         </p>
                       )}
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-auto">
                         {vet.website && (
                           <a href={vet.website} target="_blank" rel="noreferrer">
                             <Button variant="outline" className="w-full"><Globe className="w-4 h-4 mr-2" /> Web</Button>

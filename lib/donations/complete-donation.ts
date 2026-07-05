@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/client'
 import type { PayPalOrderType } from '@/lib/paypal'
 
 export interface CompleteDonationInput {
@@ -10,6 +11,28 @@ export interface CompleteDonationInput {
 export interface CompleteDonationResult {
   success: boolean
   message: string
+}
+
+async function notifyCampaignDonationN8n(campaignId: number, amount: number) {
+  try {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    await fetch('/api/n8n/campaign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId,
+        event: 'donation.completed',
+        amount,
+        donorEmail: user?.email,
+      }),
+    })
+  } catch (notificationError) {
+    console.error('n8n notification failed:', notificationError)
+  }
 }
 
 export async function completeDonationAfterCapture(
@@ -40,7 +63,13 @@ export async function completeDonationAfterCapture(
   }
 
   if (input.type === 'campaign') {
-    const title = input.campaignTitle ? `"${input.campaignTitle}"` : 'la campana'
+    if (!input.campaignId) {
+      return { success: false, message: 'Falta el identificador de la campaña.' }
+    }
+
+    await notifyCampaignDonationN8n(Number(input.campaignId), amount)
+
+    const title = input.campaignTitle ? `"${input.campaignTitle}"` : 'la campaña'
     return {
       success: true,
       message: `Gracias. Donaste $${amount.toFixed(2)} a ${title}.`,

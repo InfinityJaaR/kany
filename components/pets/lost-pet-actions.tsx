@@ -57,6 +57,18 @@ export function MarkFoundButton({ petId, petName, className }: MarkFoundButtonPr
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  async function notifyN8n(actorEmail: string | null | undefined) {
+    try {
+      await fetch('/api/n8n/lost-pet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lostPetId: petId, event: 'found', actorEmail: actorEmail ?? undefined }),
+      })
+    } catch (notificationError) {
+      console.error('n8n notification failed:', notificationError)
+    }
+  }
+
   async function markAsFound() {
     const confirmed = window.confirm(`Marcar a ${petName} como encontrada?`)
     if (!confirmed) return
@@ -76,6 +88,11 @@ export function MarkFoundButton({ petId, petName, className }: MarkFoundButtonPr
       setError(updateError.message)
       return
     }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    await notifyN8n(user?.email)
 
     router.refresh()
   }

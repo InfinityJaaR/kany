@@ -94,7 +94,7 @@ export default function ReportarPage() {
       await fetch('/api/n8n/lost-pet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lostPetId }),
+        body: JSON.stringify({ lostPetId, event: 'lost' }),
       })
     } catch (notificationError) {
       console.error('n8n notification failed:', notificationError)

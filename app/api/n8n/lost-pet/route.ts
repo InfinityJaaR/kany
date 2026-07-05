@@ -4,6 +4,8 @@ import { haversineDistanceKm } from '@/lib/geo'
 
 type RequestBody = {
   lostPetId?: number
+  event?: 'lost' | 'found'
+  actorEmail?: string
 }
 
 type ProfileRow = {
@@ -96,51 +98,56 @@ export async function POST(request: Request) {
           .maybeSingle<Pick<ProfileRow, 'id' | 'email' | 'full_name'>>()
       : { data: null }
 
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, home_latitude, home_longitude, notification_radius_m, notify_nearby_lost_pets')
-      .not('email', 'is', null)
-      .not('home_latitude', 'is', null)
-      .not('home_longitude', 'is', null)
-      .eq('notify_nearby_lost_pets', true)
+    const event: 'lost' | 'found' = body.event === 'found' ? 'found' : 'lost'
 
-    if (profilesError) {
-      return NextResponse.json({ error: profilesError.message }, { status: 500 })
+    let userEmail: string[] | string | null
+
+    if (event === 'found') {
+      userEmail = body.actorEmail ?? null
+    } else {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, home_latitude, home_longitude, notification_radius_m, notify_nearby_lost_pets')
+        .not('email', 'is', null)
+        .not('home_latitude', 'is', null)
+        .not('home_longitude', 'is', null)
+        .eq('notify_nearby_lost_pets', true)
+
+      if (profilesError) {
+        return NextResponse.json({ error: profilesError.message }, { status: 500 })
+      }
+
+      userEmail =
+        pet.latitude !== null && pet.longitude !== null
+          ? ((profiles ?? []) as ProfileRow[])
+              .filter((profile) => profile.id !== pet.reported_by)
+              .map((profile) => ({
+                email: profile.email!,
+                distanceKm: haversineDistanceKm(
+                  pet.latitude!,
+                  pet.longitude!,
+                  profile.home_latitude!,
+                  profile.home_longitude!,
+                ),
+                radiusKm: (profile.notification_radius_m ?? 1000) / 1000,
+              }))
+              .filter((person) => person.distanceKm <= person.radiusKm)
+              .map((person) => person.email)
+          : []
     }
-
-    const nearbyPeople =
-      pet.latitude !== null && pet.longitude !== null
-        ? ((profiles ?? []) as ProfileRow[])
-            .filter((profile) => profile.id !== pet.reported_by)
-            .map((profile) => ({
-              email: profile.email!,
-              distanceKm: haversineDistanceKm(
-                pet.latitude!,
-                pet.longitude!,
-                profile.home_latitude!,
-                profile.home_longitude!,
-              ),
-              radiusKm: (profile.notification_radius_m ?? 1000) / 1000,
-            }))
-            .filter((person) => person.distanceKm <= person.radiusKm)
-            .map((person) => ({ email: person.email }))
-        : []
 
     const publicationLink = `${getAppUrl(request)}/mascotas/perdidas/${pet.id}`
     const payload = {
-      event: 'lost_pet_created',
-      nearby_people: nearbyPeople,
-      user_name: reporter?.full_name ?? null,
-      user_email: reporter?.email ?? null,
-      pet_name: pet.name,
+      event,
+      name: pet.name,
+      breed: pet.breed,
+      color: pet.color,
       location: pet.location,
-      location_department: pet.location_department,
-      location_municipality: pet.location_municipality,
-      latitude: pet.latitude,
-      longitude: pet.longitude,
+      description: pet.description,
       reward: pet.reward,
-      contact_email: pet.contact,
+      email: reporter?.email ?? null,
       app_url: publicationLink,
+      user_email: userEmail,
     }
 
     const n8n = await notifyN8n(payload)

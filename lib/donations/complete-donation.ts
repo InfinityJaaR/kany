@@ -13,6 +13,28 @@ export interface CompleteDonationResult {
   message: string
 }
 
+async function notifyCampaignDonationN8n(campaignId: number, amount: number) {
+  try {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    await fetch('/api/n8n/campaign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId,
+        event: 'donation.completed',
+        amount,
+        donorEmail: user?.email,
+      }),
+    })
+  } catch (notificationError) {
+    console.error('n8n notification failed:', notificationError)
+  }
+}
+
 export async function completeDonationAfterCapture(
   input: CompleteDonationInput
 ): Promise<CompleteDonationResult> {
@@ -40,6 +62,8 @@ export async function completeDonationAfterCapture(
         : error.message
       return { success: false, message }
     }
+
+    await notifyCampaignDonationN8n(Number(input.campaignId), amount)
 
     const title = input.campaignTitle ? `"${input.campaignTitle}"` : 'la campaña'
     return {

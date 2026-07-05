@@ -19,6 +19,18 @@ export default function NuevaCampanaPage() {
   const [ok, setOk] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  async function notifyN8n(campaignId: number) {
+    try {
+      await fetch('/api/n8n/campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId, event: 'campaign.created' }),
+      })
+    } catch (notificationError) {
+      console.error('n8n notification failed:', notificationError)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!userId) return
@@ -30,20 +42,30 @@ export default function NuevaCampanaPage() {
     const goalNum = parseFloat(goal) || 0
 
     try {
-      const { error: insertError } = await supabase.from('campaigns').insert({
-        title,
-        description,
-        goal: goalNum,
-        current: 0,
-        donors: 0,
-        days_left: 30,
-        organization,
-        status: 'normal',
-        updates: 0,
-        image_url: imageUrl,
-        creator_id: userId,
-      })
+      const { data, error: insertError } = await supabase
+        .from('campaigns')
+        .insert({
+          title,
+          description,
+          goal: goalNum,
+          current: 0,
+          donors: 0,
+          days_left: 30,
+          organization,
+          status: 'normal',
+          updates: 0,
+          image_url: imageUrl,
+          creator_id: userId,
+        })
+        .select('id')
+        .single()
+
       if (insertError) throw insertError
+
+      if (data?.id) {
+        await notifyN8n(Number(data.id))
+      }
+
       setOk(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear la campaña.')

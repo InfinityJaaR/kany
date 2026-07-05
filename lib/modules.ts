@@ -18,7 +18,6 @@ export const REMOVED_ROUTES = [
   '/transporte',
   '/marketplace',
   '/ia',
-  '/admin',
   '/fundaciones',
   '/dashboard',
   '/roles',

@@ -6,9 +6,9 @@ import { getThirdModule } from '@/lib/modules'
 import { getVisibleNavItems, navLinkClass, type NavContext } from '@/lib/navigation/site-nav'
 
 function useNavContext(): NavContext & { loading: boolean } {
-  const { loading, userType, isLoggedIn } = useProfile()
+  const { loading, userType, isLoggedIn, isAdmin } = useProfile()
   const third = getThirdModule()
-  return { loading, isLoggedIn, userType, third }
+  return { loading, isLoggedIn, userType, isAdmin, third }
 }
 
 export function RoleNav() {

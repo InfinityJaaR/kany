@@ -5,6 +5,7 @@ import {
   Home,
   PawPrint,
   PlusCircle,
+  ShieldCheck,
   Stethoscope,
   type LucideIcon,
 } from 'lucide-react'
@@ -18,6 +19,7 @@ export const desktopNavLinkClass =
 export type NavContext = {
   isLoggedIn: boolean
   userType: UserType | null
+  isAdmin: boolean
   third: ThirdModule
 }
 
@@ -47,6 +49,11 @@ export function getMainNavItems(): SiteNavItem[] {
       label: 'Mi clínica',
       show: (ctx) => ctx.userType === 'vet',
     },
+    {
+      href: '/admin',
+      label: 'Admin',
+      show: (ctx) => ctx.isAdmin,
+    },
   ]
 }
 
@@ -61,6 +68,7 @@ const mobileNavIcons: Record<string, LucideIcon> = {
   '/veterinarias': Stethoscope,
   '/donaciones/nueva': PlusCircle,
   '/veterinarias/registrar': Stethoscope,
+  '/admin': ShieldCheck,
 }
 
 export function getMobileNavIcon(href: string): LucideIcon {

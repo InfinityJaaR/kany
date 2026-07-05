@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: 'Kany',
   description: 'Plataforma comunitaria para mascotas perdidas en El Salvador',
   icons: {
-    icon: '/favicon.png',
-    apple: '/apple-icon.png',
+    icon: '/favicon2.png',
+    apple: '/favicon2.png',
   },
 }
 

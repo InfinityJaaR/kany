@@ -13,7 +13,7 @@ export function Logo({ size = 32, showText = true, href = '/', className }: Logo
   const content = (
     <div className={cn('flex items-center gap-2', className)}>
       <Image
-        src="/logo.png"
+        src="/favicon2.png"
         alt="Kany"
         width={size}
         height={size}

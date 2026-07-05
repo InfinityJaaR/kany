@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import logoMeta from '@/lib/branding/logo-meta.json'
 import { hasTabIcon, type LogoMeta } from '@/lib/branding/logo'
+import { N8nChatWidget } from '@/components/chat/n8n-chat-widget'
 import './globals.css'
 
 const meta = logoMeta as LogoMeta
@@ -54,7 +55,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${GeistSans.className} antialiased`}>{children}</body>
+      <body className={`${GeistSans.className} antialiased`}>
+        {children}
+        <N8nChatWidget />
+      </body>
     </html>
   )
 }

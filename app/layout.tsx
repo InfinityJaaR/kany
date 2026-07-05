@@ -1,26 +1,27 @@
 import type { Metadata, Viewport } from 'next'
+import { GeistSans } from 'geist/font/sans'
+import logoMeta from '@/lib/branding/logo-meta.json'
+import { hasTabIcon, type LogoMeta } from '@/lib/branding/logo'
 import './globals.css'
+
+const meta = logoMeta as LogoMeta
+
+const icons: Metadata['icons'] = hasTabIcon(meta)
+  ? {
+      icon: [
+        { url: '/branding/favicon-16.png', sizes: '16x16', type: 'image/png' },
+        { url: '/branding/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      ],
+      apple: '/branding/apple-icon.png',
+    }
+  : {
+      icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    }
 
 export const metadata: Metadata = {
   title: 'Kany',
   description: 'Plataforma comunitaria para mascotas perdidas en El Salvador',
-  icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
+  icons,
 }
 
 export const viewport: Viewport = {
@@ -53,7 +54,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body className={`${GeistSans.className} antialiased`}>{children}</body>
     </html>
   )
 }

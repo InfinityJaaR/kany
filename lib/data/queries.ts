@@ -239,6 +239,46 @@ export async function fetchVetFilterOptions(): Promise<VetFilterOptions> {
   }
 }
 
+export type HomeCommunityStats = {
+  activeLostPets: number
+  foundPets: number
+  activeCampaigns: number
+  vets: number
+  foodPrices: number
+}
+
+export async function fetchHomeCommunityStats(): Promise<HomeCommunityStats> {
+  const supabase = await createClient()
+
+  const [lostResult, foundResult, campaignsResult, vetsResult, pricesResult] = await Promise.all([
+    supabase
+      .from('lost_pets')
+      .select('*', { count: 'exact', head: true })
+      .neq('status', 'found'),
+    supabase.from('found_pets').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('campaigns')
+      .select('*', { count: 'exact', head: true })
+      .neq('status', 'completed'),
+    supabase.from('vets').select('*', { count: 'exact', head: true }),
+    supabase.from('food_prices').select('*', { count: 'exact', head: true }),
+  ])
+
+  if (lostResult.error) console.error('fetchHomeCommunityStats lost_pets:', lostResult.error.message)
+  if (foundResult.error) console.error('fetchHomeCommunityStats found_pets:', foundResult.error.message)
+  if (campaignsResult.error) console.error('fetchHomeCommunityStats campaigns:', campaignsResult.error.message)
+  if (vetsResult.error) console.error('fetchHomeCommunityStats vets:', vetsResult.error.message)
+  if (pricesResult.error) console.error('fetchHomeCommunityStats food_prices:', pricesResult.error.message)
+
+  return {
+    activeLostPets: lostResult.count ?? 0,
+    foundPets: foundResult.count ?? 0,
+    activeCampaigns: campaignsResult.count ?? 0,
+    vets: vetsResult.count ?? 0,
+    foodPrices: pricesResult.count ?? 0,
+  }
+}
+
 export async function fetchVets(options: FetchVetsOptions = {}): Promise<FetchVetsResult> {
   const page = Math.max(1, options.page ?? 1)
   const pageSize = options.pageSize ?? 24

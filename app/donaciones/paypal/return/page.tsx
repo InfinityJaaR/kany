@@ -5,11 +5,22 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
+import {
+  completeDonationAfterCapture,
+  notifyPayPalOpener,
+  PAYPAL_DONATION_MESSAGE_TYPE,
+} from '@/lib/donations/complete-donation'
+import type { PayPalOrderType } from '@/lib/paypal'
 
 type CaptureState = 'loading' | 'success' | 'cancelled' | 'error'
 
 interface CaptureResponse {
   status?: string
+  type?: PayPalOrderType
+  amount?: string
+  currency?: string
+  campaignId?: string
+  campaignTitle?: string
   error?: string
 }
 
@@ -17,7 +28,10 @@ function PayPalReturnContent() {
   const searchParams = useSearchParams()
   const token = useMemo(() => searchParams.get('token'), [searchParams])
   const explicitStatus = useMemo(() => searchParams.get('status'), [searchParams])
-  const donationType = useMemo(() => searchParams.get('type'), [searchParams])
+  const donationType = useMemo(() => searchParams.get('type') as PayPalOrderType | null, [searchParams])
+  const amount = useMemo(() => searchParams.get('amount'), [searchParams])
+  const campaignId = useMemo(() => searchParams.get('campaignId'), [searchParams])
+  const campaignTitle = useMemo(() => searchParams.get('campaignTitle'), [searchParams])
   const isCancelled = explicitStatus === 'cancelled'
 
   const [captureState, setCaptureState] = useState<CaptureState>(() => {
@@ -37,7 +51,24 @@ function PayPalReturnContent() {
   })
 
   useEffect(() => {
-    if (isCancelled || !token) {
+    if (isCancelled) {
+      notifyPayPalOpener({
+        type: PAYPAL_DONATION_MESSAGE_TYPE,
+        status: 'cancelled',
+        message: 'Cancelaste el pago en PayPal.',
+        donationType: donationType ?? undefined,
+      })
+
+      const timer = setTimeout(() => {
+        if (window.opener) {
+          window.close()
+        }
+      }, 1500)
+
+      return () => clearTimeout(timer)
+    }
+
+    if (!token) {
       return
     }
 
@@ -45,7 +76,17 @@ function PayPalReturnContent() {
 
     async function captureOrder() {
       try {
-        const response = await fetch(`/api/paypal/orders/${token}/capture`, { method: 'POST' })
+        const response = await fetch(`/api/paypal/orders/${token}/capture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: donationType ?? 'campaign',
+            campaignId: campaignId ?? undefined,
+            campaignTitle: campaignTitle ?? undefined,
+            amount: amount ?? undefined,
+            currency: searchParams.get('currency') ?? 'USD',
+          }),
+        })
         const data = (await response.json()) as CaptureResponse
 
         if (!response.ok) {
@@ -57,12 +98,41 @@ function PayPalReturnContent() {
         }
 
         if (data.status === 'COMPLETED') {
-          const successText =
-            donationType === 'site_support'
-              ? 'Gracias por apoyar la plataforma Kany. Tu donación fue confirmada.'
-              : 'Gracias por tu donación. El pago se confirmó correctamente.'
+          const donationResult = await completeDonationAfterCapture({
+            type: data.type ?? donationType ?? 'campaign',
+            amount: data.amount ?? amount ?? '0',
+            campaignId: data.campaignId ?? campaignId ?? undefined,
+            campaignTitle: data.campaignTitle ?? campaignTitle ?? undefined,
+          })
+
+          if (!donationResult.success) {
+            setCaptureState('error')
+            setMessage(donationResult.message)
+            notifyPayPalOpener({
+              type: PAYPAL_DONATION_MESSAGE_TYPE,
+              status: 'error',
+              message: donationResult.message,
+              donationType: data.type ?? donationType ?? undefined,
+            })
+            return
+          }
+
           setCaptureState('success')
-          setMessage(successText)
+          setMessage(donationResult.message)
+          notifyPayPalOpener({
+            type: PAYPAL_DONATION_MESSAGE_TYPE,
+            status: 'success',
+            message: donationResult.message,
+            donationType: data.type ?? donationType ?? undefined,
+            amount: data.amount ?? amount ?? undefined,
+            campaignId: data.campaignId ?? campaignId ?? undefined,
+          })
+
+          setTimeout(() => {
+            if (window.opener) {
+              window.close()
+            }
+          }, 1500)
           return
         }
 
@@ -72,8 +142,15 @@ function PayPalReturnContent() {
         if (!isMounted) {
           return
         }
+        const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error al confirmar el pago.'
         setCaptureState('error')
-        setMessage(error instanceof Error ? error.message : 'Ocurrió un error al confirmar el pago.')
+        setMessage(errorMessage)
+        notifyPayPalOpener({
+          type: PAYPAL_DONATION_MESSAGE_TYPE,
+          status: 'error',
+          message: errorMessage,
+          donationType: donationType ?? undefined,
+        })
       }
     }
 
@@ -82,7 +159,7 @@ function PayPalReturnContent() {
     return () => {
       isMounted = false
     }
-  }, [donationType, isCancelled, token])
+  }, [amount, campaignId, campaignTitle, donationType, isCancelled, searchParams, token])
 
   return (
     <div className="bg-card border border-border rounded-2xl p-8">

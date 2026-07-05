@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-import { createPayPalOrder, getPayPalApprovalUrl, type PayPalOrderType } from '@/lib/paypal'
+import { createOrder, getPayPalMode, type PayPalOrderType } from '@/lib/paypal'
 
 interface CreateOrderBody {
   amount?: number | string
@@ -18,6 +18,7 @@ export async function POST(request: Request) {
     const amount = Number(body.amount)
     const currency = (body.currency ?? 'USD').toUpperCase()
     const type = body.type ?? 'campaign'
+    const mode = getPayPalMode()
 
     if (!Number.isFinite(amount) || amount <= 0) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
@@ -25,6 +26,16 @@ export async function POST(request: Request) {
 
     if (!ALLOWED_TYPES.includes(type)) {
       return NextResponse.json({ error: 'Invalid donation type' }, { status: 400 })
+    }
+
+    if (mode === 'sandbox' && (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET)) {
+      return NextResponse.json(
+        {
+          error:
+            'PayPal sandbox requiere PAYPAL_CLIENT_ID y PAYPAL_CLIENT_SECRET. Usa PAYPAL_MODE=simulated para la demo.',
+        },
+        { status: 500 }
+      )
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
@@ -46,7 +57,7 @@ export async function POST(request: Request) {
     const returnUrl = `${returnBase}?${params.toString()}`
     const cancelUrl = `${returnUrl}&status=cancelled`
 
-    const order = await createPayPalOrder({
+    const order = await createOrder({
       amount: amount.toFixed(2),
       currency,
       type,
@@ -55,19 +66,24 @@ export async function POST(request: Request) {
       returnUrl,
       cancelUrl,
     })
-    const approvalUrl = getPayPalApprovalUrl(order)
 
-    if (!approvalUrl) {
+    if (!order.approvalUrl) {
       return NextResponse.json({ error: 'Unable to get approval URL from PayPal' }, { status: 502 })
     }
 
     return NextResponse.json({
       orderId: order.id,
       status: order.status,
-      approvalUrl,
+      approvalUrl: order.approvalUrl,
+      mode: order.mode,
+      token: order.token,
+      description: order.description,
     })
   } catch (error) {
     console.error('Failed to create PayPal order', error)
-    return NextResponse.json({ error: 'Failed to create PayPal order' }, { status: 500 })
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to create PayPal order' },
+      { status: 500 }
+    )
   }
 }

@@ -29,6 +29,7 @@ export function N8nChatWidget() {
             footer: '',
             getStarted: 'Nueva conversación',
             inputPlaceholder: 'Escribe tu mensaje...',
+            closeButtonTooltip: 'Cerrar chat',
           },
         },
       })

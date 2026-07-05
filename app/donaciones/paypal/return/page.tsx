@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,7 @@ interface CaptureResponse {
   error?: string
 }
 
-export default function PayPalReturnPage() {
+function PayPalReturnContent() {
   const searchParams = useSearchParams()
   const token = useMemo(() => searchParams.get('token'), [searchParams])
   const explicitStatus = useMemo(() => searchParams.get('status'), [searchParams])
@@ -85,27 +85,41 @@ export default function PayPalReturnPage() {
   }, [donationType, isCancelled, token])
 
   return (
+    <div className="bg-card border border-border rounded-2xl p-8">
+      <h1 className="text-3xl font-bold text-foreground mb-3">Resultado de tu donación</h1>
+      <p className="text-foreground/70 mb-6">{message}</p>
+
+      {captureState === 'loading' ? (
+        <p className="text-sm text-foreground/60">Un momento, estamos verificando la transacción...</p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-3 mt-2">
+        <Link href="/donaciones">
+          <Button className="bg-primary hover:bg-primary/90">
+            {captureState === 'success' ? 'Volver a donaciones' : 'Intentar otra donación'}
+          </Button>
+        </Link>
+        <Link href="/">
+          <Button variant="outline">Ir al inicio</Button>
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+export default function PayPalReturnPage() {
+  return (
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-card border border-border rounded-2xl p-8">
-          <h1 className="text-3xl font-bold text-foreground mb-3">Resultado de tu donación</h1>
-          <p className="text-foreground/70 mb-6">{message}</p>
-
-          {captureState === 'loading' ? (
-            <p className="text-sm text-foreground/60">Un momento, estamos verificando la transacción...</p>
-          ) : null}
-
-          <div className="flex flex-wrap gap-3 mt-2">
-            <Link href="/donaciones">
-              <Button className="bg-primary hover:bg-primary/90">
-                {captureState === 'success' ? 'Volver a donaciones' : 'Intentar otra donación'}
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline">Ir al inicio</Button>
-            </Link>
-          </div>
-        </div>
+        <Suspense
+          fallback={
+            <div className="bg-card border border-border rounded-2xl p-8">
+              <p className="text-foreground/60">Cargando resultado del pago…</p>
+            </div>
+          }
+        >
+          <PayPalReturnContent />
+        </Suspense>
       </div>
     </div>
   )

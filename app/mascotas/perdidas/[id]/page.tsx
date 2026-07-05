@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Calendar, FilePenLine, Mail, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
+import { StartConversationButton } from '@/components/chat/start-conversation-button'
 import { MarkFoundButton, SharePetButton } from '@/components/pets/lost-pet-actions'
 import { createClient } from '@/lib/supabase/server'
 import { getLostStatusLabel } from '@/lib/pets-utils'
@@ -140,6 +141,10 @@ export default async function LostPetDetailPage({ params }: PageProps) {
                 </a>
               )}
             </div>
+
+            {!canMarkFound && pet.reported_by && (
+              <StartConversationButton lostPetId={pet.id} className="mt-4" />
+            )}
 
             {canMarkFound && (
               <MarkFoundButton

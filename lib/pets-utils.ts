@@ -1,6 +1,6 @@
-export type LostPetStatus = 'critical' | 'urgent' | 'normal'
+export type LostPetStatus = 'critical' | 'urgent' | 'normal' | 'found'
 
-export const LOST_PET_STATUS_OPTIONS: { value: LostPetStatus; label: string }[] = [
+export const LOST_PET_STATUS_OPTIONS: { value: Exclude<LostPetStatus, 'found'>; label: string }[] = [
   { value: 'critical', label: 'Crítico' },
   { value: 'urgent', label: 'Urgente' },
   { value: 'normal', label: 'Normal' },
@@ -14,6 +14,7 @@ export function getPetEmoji(name: string): string {
 export function getLostStatusLabel(status: string): string {
   if (status === 'critical') return 'CRÍTICO'
   if (status === 'urgent') return 'URGENTE'
+  if (status === 'found') return 'ENCONTRADA'
   return 'NORMAL'
 }
 

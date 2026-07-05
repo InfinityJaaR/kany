@@ -3,6 +3,7 @@ import { MapPin, Calendar, Phone, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { PetsModuleNav } from '@/components/layout/pets-module-nav'
+import { SharePetButton } from '@/components/pets/lost-pet-actions'
 import { fetchLostPets } from '@/lib/data/queries'
 import { getLostStatusLabel, getPetEmoji } from '@/lib/pets-utils'
 
@@ -76,12 +77,14 @@ export default async function LostPetsPage() {
                 }`} />
 
                 {pet.image_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={pet.image_url}
-                    alt={pet.name}
-                    className="w-full h-48 object-cover"
-                  />
+                  <div className="flex h-56 items-center justify-center bg-muted">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={pet.image_url}
+                      alt={pet.name}
+                      className="max-h-56 w-full object-contain"
+                    />
+                  </div>
                 )}
 
                 <div className="p-6">
@@ -146,8 +149,14 @@ export default async function LostPetsPage() {
                   )}
 
                   <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1">Compartir</Button>
-                    <Button className="flex-1 bg-primary hover:bg-primary/90">He visto a {pet.name}</Button>
+                    <SharePetButton
+                      petName={pet.name}
+                      path={`/mascotas/perdidas/${pet.id}`}
+                      className="flex-1"
+                    />
+                    <Link href={`/mascotas/perdidas/${pet.id}`} className="flex-1">
+                      <Button className="w-full bg-primary hover:bg-primary/90">Ver detalle</Button>
+                    </Link>
                   </div>
                 </div>
               </div>

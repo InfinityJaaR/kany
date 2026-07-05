@@ -1,9 +1,11 @@
 import Link from 'next/link'
-import { TrendingUp, Users, Plus, Search } from 'lucide-react'
+import { TrendingUp, Users, Plus, Search, HeartHandshake } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { DonateButton } from '@/components/donations/donate-button'
+import { SiteDonateButton } from '@/components/donations/site-donate-button'
 import { getSessionProfile } from '@/lib/auth/profile'
+import { getPayPalMode } from '@/lib/paypal'
 import { getCampaignProgress, getStatusColor } from '@/data/mockCampaigns'
 import { fetchCampaigns } from '@/lib/data/queries'
 
@@ -13,6 +15,7 @@ export default async function DonationsPage() {
   const campaigns = await fetchCampaigns()
   const { userType } = await getSessionProfile()
   const isFoundation = userType === 'foundation'
+  const paypalMode = getPayPalMode()
 
   const totalRaised = campaigns.reduce((sum, c) => sum + Number(c.current), 0)
   const totalDonors = campaigns.reduce((sum, c) => sum + c.donors, 0)
@@ -64,6 +67,22 @@ export default async function DonationsPage() {
           <div className="p-6 rounded-xl bg-blue-500/5 border border-blue-500/20">
             <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">{active}</div>
             <p className="text-sm text-foreground/60">Campañas activas</p>
+          </div>
+        </div>
+
+        <div className="mb-12 p-6 rounded-2xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <HeartHandshake className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-bold text-foreground">Apoya la plataforma Kany</h2>
+              </div>
+              <p className="text-sm text-foreground/60 max-w-xl">
+                Dona directamente para mantener la plataforma comunitaria. Pago con PayPal
+                {paypalMode === 'simulated' ? ' (modo simulado para demo)' : ' Sandbox'}.
+              </p>
+            </div>
+            <SiteDonateButton paypalMode={paypalMode} />
           </div>
         </div>
       </div>
@@ -159,7 +178,11 @@ export default async function DonationsPage() {
                     </div>
 
                     <div className="flex gap-3">
-                      <DonateButton campaignId={campaign.id} campaignTitle={campaign.title} />
+                      <DonateButton
+                        campaignId={campaign.id}
+                        campaignTitle={campaign.title}
+                        paypalMode={paypalMode}
+                      />
                     </div>
                   </div>
                 </div>

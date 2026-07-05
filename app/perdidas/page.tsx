@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { MapPin, Calendar, Phone } from 'lucide-react'
+import { MapPin, Calendar, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
 import { PetsModuleNav } from '@/components/layout/pets-module-nav'
@@ -124,8 +124,8 @@ export default async function LostPetsPage() {
 
                   {pet.contact && (
                     <div className="flex items-center gap-2 mb-6 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                      <Phone className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      <span className="text-sm text-blue-700 dark:text-blue-400 font-medium">{pet.contact}</span>
+                      <Mail className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="text-sm text-blue-700 dark:text-blue-400 font-medium break-all">{pet.contact}</span>
                     </div>
                   )}
 

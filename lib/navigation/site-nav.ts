@@ -2,6 +2,7 @@ import type { UserType } from '@/types/auth'
 import type { ThirdModule } from '@/lib/modules'
 import {
   Heart,
+  Home,
   PawPrint,
   PlusCircle,
   Stethoscope,
@@ -28,6 +29,7 @@ export type SiteNavItem = {
 
 export function getMainNavItems(): SiteNavItem[] {
   return [
+    { href: '/', label: 'Inicio' },
     { href: '/perdidas', label: 'Lista de mascotas' },
     { href: '/donaciones', label: 'Donaciones' },
     {
@@ -53,6 +55,7 @@ export function getVisibleNavItems(ctx: NavContext): SiteNavItem[] {
 }
 
 const mobileNavIcons: Record<string, LucideIcon> = {
+  '/': Home,
   '/perdidas': PawPrint,
   '/donaciones': Heart,
   '/veterinarias': Stethoscope,

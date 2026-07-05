@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { LocateFixed, MapPin, Navigation, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { VetCardImage } from '@/components/vets/vet-card-image'
 import { createClient } from '@/lib/supabase/client'
 import { formatDistanceKm } from '@/lib/geo'
 import type { VetRow } from '@/lib/data/queries'
@@ -32,6 +33,24 @@ function sortByDistance(vets: VetRow[], lat: number, lng: number): VetWithDistan
 type NearbyVetsProps = {
   fallbackLat?: number | null
   fallbackLng?: number | null
+}
+
+function getVetVisual(vet: VetRow) {
+  const text = `${vet.name ?? ''} ${vet.title ?? ''} ${vet.services ?? ''} ${vet.category_name ?? ''} ${vet.search_string ?? ''}`.toLowerCase()
+
+  if (text.includes('groom') || text.includes('peluquer') || text.includes('baño')) {
+    return { emoji: '✂️', label: 'Grooming & estética', gradient: 'from-pink-500 via-rose-400 to-orange-300' }
+  }
+
+  if (text.includes('pet shop') || text.includes('tienda') || text.includes('accesorio') || text.includes('alimento')) {
+    return { emoji: '🛒', label: 'Pet shop', gradient: 'from-emerald-500 via-teal-400 to-cyan-300' }
+  }
+
+  if (text.includes('hospital') || text.includes('emergencia') || text.includes('24')) {
+    return { emoji: '🏥', label: 'Hospital veterinario', gradient: 'from-blue-600 via-sky-500 to-cyan-300' }
+  }
+
+  return { emoji: '🐾', label: 'Clínica veterinaria', gradient: 'from-primary via-accent to-purple-400' }
 }
 
 export function NearbyVets({ fallbackLat, fallbackLng }: NearbyVetsProps) {
@@ -130,47 +149,62 @@ export function NearbyVets({ fallbackLat, fallbackLng }: NearbyVetsProps) {
 
       {vets.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {vets.map((vet) => (
-            <article
-              key={vet.id}
-              className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition"
-            >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className="font-semibold text-foreground">{vet.name}</h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 whitespace-nowrap">
-                  A {formatDistanceKm(vet.distanceKm)}
-                </span>
-              </div>
-              {vet.services && (
-                <p className="text-sm text-foreground/60 mb-2 line-clamp-2">{vet.services}</p>
-              )}
-              <div className="space-y-1 text-sm text-foreground/70">
-                {(vet.address || vet.location) && (
-                  <p className="flex items-start gap-1">
-                    <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    {vet.address ?? vet.location}
-                  </p>
-                )}
-                {vet.phone && (
-                  <p className="flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5 shrink-0" />
-                    {vet.phone}
-                  </p>
-                )}
-              </div>
-              {(vet.latitude != null && vet.longitude != null) && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${vet.latitude},${vet.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-3 text-sm text-primary hover:underline"
-                >
-                  <Navigation className="w-3.5 h-3.5" />
-                  Abrir en Maps
-                </a>
-              )}
-            </article>
-          ))}
+          {vets.map((vet) => {
+            const visual = getVetVisual(vet)
+            const name = vet.name || vet.title || 'Veterinaria'
+
+            return (
+              <article
+                key={vet.id}
+                className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-md transition h-full flex flex-col"
+              >
+                <VetCardImage
+                  imageUrl={vet.image_url}
+                  name={name}
+                  emoji={visual.emoji}
+                  label={visual.label}
+                  gradient={visual.gradient}
+                />
+
+                <div className="p-4 flex flex-col flex-1">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-semibold text-foreground line-clamp-2">{name}</h3>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-400 whitespace-nowrap">
+                      A {formatDistanceKm(vet.distanceKm)}
+                    </span>
+                  </div>
+                  {vet.services && (
+                    <p className="text-sm text-foreground/60 mb-2 line-clamp-2">{vet.services}</p>
+                  )}
+                  <div className="space-y-1 text-sm text-foreground/70 mb-3">
+                    {(vet.address || vet.location) && (
+                      <p className="flex items-start gap-1 line-clamp-2">
+                        <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                        {vet.address ?? vet.location}
+                      </p>
+                    )}
+                    {vet.phone && (
+                      <p className="flex items-center gap-1">
+                        <Phone className="w-3.5 h-3.5 shrink-0" />
+                        {vet.phone}
+                      </p>
+                    )}
+                  </div>
+                  {(vet.latitude != null && vet.longitude != null) && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${vet.latitude},${vet.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-auto text-sm text-primary hover:underline"
+                    >
+                      <Navigation className="w-3.5 h-3.5" />
+                      Abrir en Maps
+                    </a>
+                  )}
+                </div>
+              </article>
+            )
+          })}
         </div>
       )}
 

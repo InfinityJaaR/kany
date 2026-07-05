@@ -34,6 +34,7 @@ export function getMainNavItems(): SiteNavItem[] {
     { href: '/', label: 'Inicio' },
     { href: '/perdidas', label: 'Lista de mascotas' },
     { href: '/donaciones', label: 'Donaciones' },
+    { href: '/petshopping', label: 'PetShopping' },
     {
       href: '/veterinarias',
       label: 'Veterinarias',
@@ -65,6 +66,7 @@ const mobileNavIcons: Record<string, LucideIcon> = {
   '/': Home,
   '/perdidas': PawPrint,
   '/donaciones': Heart,
+  '/petshopping': Heart,
   '/veterinarias': Stethoscope,
   '/donaciones/nueva': PlusCircle,
   '/veterinarias/registrar': Stethoscope,

@@ -67,6 +67,14 @@ export type FoodPriceRow = {
   price: number
   store: string | null
   available: string | null
+  product_name?: string | null
+  normalized_name?: string | null
+  category?: string | null
+  product_url?: string | null
+  image_url?: string | null
+  currency?: string | null
+  source_url?: string | null
+  last_scraped_at?: string | null
 }
 
 export type VetRow = {
@@ -244,6 +252,57 @@ export async function fetchFoodPrices(): Promise<FoodPriceRow[]> {
     return []
   }
   return data ?? []
+}
+
+export async function fetchPetShoppingPrices(q?: string): Promise<FoodPriceRow[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('food_prices')
+    .select('*')
+    .order('price', { ascending: true })
+    .limit(300)
+
+  if (error) {
+    console.error('fetchPetShoppingPrices:', error.message)
+    return []
+  }
+
+  const invalidNames = [
+    'grid view',
+    'list view',
+    'quick view',
+    'vista de cuadricula',
+    'vista de lista',
+    'add to cart',
+    'añadir al carrito',
+    'seleccionar opciones',
+  ]
+
+  const cleanData = (data ?? []).filter((item) => {
+    const title = String(item.product_name || item.brand || '').trim().toLowerCase()
+    if (!title || title.length < 3) return false
+    return !invalidNames.some((invalid) => title.includes(invalid))
+  })
+
+  const search = q?.trim().toLowerCase()
+  if (!search) return cleanData
+
+  return cleanData.filter((item) => {
+    const text = [
+      item.product_name,
+      item.normalized_name,
+      item.brand,
+      item.weight,
+      item.store,
+      item.available,
+      item.category,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return text.includes(search)
+  })
 }
 
 export async function fetchVetFilterOptions(): Promise<VetFilterOptions> {

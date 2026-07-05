@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
@@ -67,6 +68,12 @@ export function AuthButton() {
       <Link href="/perfil">
         <Button variant="outline" size="sm">
           Perfil
+        </Button>
+      </Link>
+      <Link href="/mensajes">
+        <Button variant="outline" size="sm">
+          <MessageCircle className="w-4 h-4" />
+          <span className="hidden sm:inline">Mensajes</span>
         </Button>
       </Link>
       <Button variant="outline" size="sm" onClick={handleSignOut}>

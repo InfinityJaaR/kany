@@ -1,3 +1,11 @@
+export type LostPetStatus = 'critical' | 'urgent' | 'normal'
+
+export const LOST_PET_STATUS_OPTIONS: { value: LostPetStatus; label: string }[] = [
+  { value: 'critical', label: 'Crítico' },
+  { value: 'urgent', label: 'Urgente' },
+  { value: 'normal', label: 'Normal' },
+]
+
 export function getPetEmoji(name: string): string {
   if (/gato|gata|mimi|miau/i.test(name)) return '🐈'
   return '🐕'

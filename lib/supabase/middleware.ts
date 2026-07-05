@@ -1,16 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { needsOnboarding } from '@/lib/auth/onboarding'
+import { getSupabaseRuntimeEnv } from '@/lib/supabase/env'
 
 const AUTH_PATHS = ['/auth/login', '/auth/register', '/auth/callback']
 const ONBOARDING_PATH = '/auth/onboarding'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
+  const { supabaseUrl, supabaseAnonKey } = getSupabaseRuntimeEnv()
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {

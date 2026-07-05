@@ -1,8 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import { getSupabaseRuntimeEnv } from '@/lib/supabase/env'
 
 export function createAdminClient() {
+  const { supabaseUrl } = getSupabaseRuntimeEnv()
+
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: {

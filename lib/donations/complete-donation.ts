@@ -1,5 +1,5 @@
-import type { PayPalOrderType } from '@/lib/paypal'
 import { createClient } from '@/lib/supabase/client'
+import type { PayPalOrderType } from '@/lib/paypal'
 
 export interface CompleteDonationInput {
   type: PayPalOrderType
@@ -13,55 +13,72 @@ export interface CompleteDonationResult {
   message: string
 }
 
+async function notifyCampaignDonationN8n(campaignId: number, amount: number) {
+  try {
+    const supabase = createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    await fetch('/api/n8n/campaign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId,
+        event: 'donation.completed',
+        amount,
+        donorEmail: user?.email,
+      }),
+    })
+  } catch (notificationError) {
+    console.error('n8n notification failed:', notificationError)
+  }
+}
+
 export async function completeDonationAfterCapture(
-  input: CompleteDonationInput
+  input: CompleteDonationInput,
 ): Promise<CompleteDonationResult> {
   const amount = parseFloat(input.amount)
 
   if (!Number.isFinite(amount) || amount <= 0) {
-    return { success: false, message: 'Monto de donación inválido.' }
+    return { success: false, message: 'Monto de donacion invalido.' }
   }
 
-  const supabase = createClient()
+  const response = await fetch('/api/donations/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: input.type,
+      amount: input.amount,
+      campaignId: input.campaignId,
+    }),
+  })
+  const data = (await response.json()) as { ok?: boolean; error?: string }
+
+  if (!response.ok || !data.ok) {
+    return {
+      success: false,
+      message: data.error ?? 'No se pudo registrar la donacion.',
+    }
+  }
 
   if (input.type === 'campaign') {
     if (!input.campaignId) {
       return { success: false, message: 'Falta el identificador de la campaña.' }
     }
 
-    const { error } = await supabase.rpc('donate_to_campaign', {
-      p_campaign_id: Number(input.campaignId),
-      p_amount: amount,
-    })
-
-    if (error) {
-      const message = error.message.includes('Not authenticated')
-        ? 'Debes iniciar sesión para donar.'
-        : error.message
-      return { success: false, message }
-    }
+    await notifyCampaignDonationN8n(Number(input.campaignId), amount)
 
     const title = input.campaignTitle ? `"${input.campaignTitle}"` : 'la campaña'
     return {
       success: true,
-      message: `¡Gracias! Donaste $${amount.toFixed(2)} a ${title}.`,
+      message: `Gracias. Donaste $${amount.toFixed(2)} a ${title}.`,
     }
-  }
-
-  const { error } = await supabase.rpc('donate_to_platform', {
-    p_amount: amount,
-  })
-
-  if (error) {
-    const message = error.message.includes('Not authenticated')
-      ? 'Debes iniciar sesión para donar.'
-      : error.message
-    return { success: false, message }
   }
 
   return {
     success: true,
-    message: `¡Gracias! Donaste $${amount.toFixed(2)} para apoyar la plataforma Kany.`,
+    message: `Gracias. Donaste $${amount.toFixed(2)} para apoyar la plataforma Kany.`,
   }
 }
 

@@ -4,6 +4,12 @@ import { haversineDistanceKm } from '@/lib/geo'
 
 type RequestBody = {
   lostPetId?: number
+  event?: 'lost' | 'found'
+  actorEmail?: string
+}
+
+type ConversationRow = {
+  id: string
 }
 
 type ProfileRow = {
@@ -38,6 +44,53 @@ type LostPetRow = {
 
 function getAppUrl(request: Request) {
   return process.env.NEXT_PUBLIC_APP_URL?.trim() || new URL(request.url).origin
+}
+
+async function getOrCreateFoundConversation({
+  supabase,
+  pet,
+  actorEmail,
+}: {
+  supabase: ReturnType<typeof createAdminClient>
+  pet: LostPetRow
+  actorEmail?: string
+}) {
+  if (!actorEmail || !pet.reported_by) return null
+
+  const { data: actor } = await supabase
+    .from('profiles')
+    .select('id, email, full_name')
+    .eq('email', actorEmail)
+    .maybeSingle<Pick<ProfileRow, 'id' | 'email' | 'full_name'>>()
+
+  if (!actor || actor.id === pet.reported_by) return null
+
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('lost_pet_id', pet.id)
+    .eq('owner_id', pet.reported_by)
+    .eq('participant_id', actor.id)
+    .maybeSingle<ConversationRow>()
+
+  if (existing) return existing.id
+
+  const { data: conversation, error } = await supabase
+    .from('conversations')
+    .insert({
+      lost_pet_id: pet.id,
+      owner_id: pet.reported_by,
+      participant_id: actor.id,
+    })
+    .select('id')
+    .single<ConversationRow>()
+
+  if (error) {
+    console.error('found conversation:', error.message)
+    return null
+  }
+
+  return conversation.id
 }
 
 async function notifyN8n(payload: unknown) {
@@ -96,51 +149,67 @@ export async function POST(request: Request) {
           .maybeSingle<Pick<ProfileRow, 'id' | 'email' | 'full_name'>>()
       : { data: null }
 
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, home_latitude, home_longitude, notification_radius_m, notify_nearby_lost_pets')
-      .not('email', 'is', null)
-      .not('home_latitude', 'is', null)
-      .not('home_longitude', 'is', null)
-      .eq('notify_nearby_lost_pets', true)
+    const event: 'lost' | 'found' = body.event === 'found' ? 'found' : 'lost'
 
-    if (profilesError) {
-      return NextResponse.json({ error: profilesError.message }, { status: 500 })
+    let userEmail: string[] | string | null
+    let conversationId: string | null = null
+
+    if (event === 'found') {
+      userEmail = body.actorEmail ?? null
+      conversationId = await getOrCreateFoundConversation({
+        supabase,
+        pet,
+        actorEmail: body.actorEmail,
+      })
+    } else {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, home_latitude, home_longitude, notification_radius_m, notify_nearby_lost_pets')
+        .not('email', 'is', null)
+        .not('home_latitude', 'is', null)
+        .not('home_longitude', 'is', null)
+        .eq('notify_nearby_lost_pets', true)
+
+      if (profilesError) {
+        return NextResponse.json({ error: profilesError.message }, { status: 500 })
+      }
+
+      userEmail =
+        pet.latitude !== null && pet.longitude !== null
+          ? ((profiles ?? []) as ProfileRow[])
+              .filter((profile) => profile.id !== pet.reported_by)
+              .map((profile) => ({
+                email: profile.email!,
+                distanceKm: haversineDistanceKm(
+                  pet.latitude!,
+                  pet.longitude!,
+                  profile.home_latitude!,
+                  profile.home_longitude!,
+                ),
+                radiusKm: (profile.notification_radius_m ?? 1000) / 1000,
+              }))
+              .filter((person) => person.distanceKm <= person.radiusKm)
+              .map((person) => person.email)
+          : []
     }
 
-    const nearbyPeople =
-      pet.latitude !== null && pet.longitude !== null
-        ? ((profiles ?? []) as ProfileRow[])
-            .filter((profile) => profile.id !== pet.reported_by)
-            .map((profile) => ({
-              email: profile.email!,
-              distanceKm: haversineDistanceKm(
-                pet.latitude!,
-                pet.longitude!,
-                profile.home_latitude!,
-                profile.home_longitude!,
-              ),
-              radiusKm: (profile.notification_radius_m ?? 1000) / 1000,
-            }))
-            .filter((person) => person.distanceKm <= person.radiusKm)
-            .map((person) => ({ email: person.email }))
-        : []
-
     const publicationLink = `${getAppUrl(request)}/mascotas/perdidas/${pet.id}`
+    const chatLink = conversationId
+      ? `${getAppUrl(request)}/mensajes?conversation=${conversationId}`
+      : null
     const payload = {
-      event: 'lost_pet_created',
-      nearby_people: nearbyPeople,
-      user_name: reporter?.full_name ?? null,
-      user_email: reporter?.email ?? null,
-      pet_name: pet.name,
+      event,
+      name: pet.name,
+      breed: pet.breed,
+      color: pet.color,
       location: pet.location,
-      location_department: pet.location_department,
-      location_municipality: pet.location_municipality,
-      latitude: pet.latitude,
-      longitude: pet.longitude,
+      description: pet.description,
       reward: pet.reward,
-      contact_email: pet.contact,
-      app_url: publicationLink,
+      email: reporter?.email ?? null,
+      app_url: chatLink ?? publicationLink,
+      publication_url: publicationLink,
+      chat_url: chatLink,
+      user_email: userEmail,
     }
 
     const n8n = await notifyN8n(payload)

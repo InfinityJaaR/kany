@@ -161,3 +161,45 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes metrics-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(calc(-1 * var(--marquee-shift, 50%)));
+  }
+}
+
+@layer utilities {
+  .animate-metrics-marquee {
+    animation: metrics-marquee linear infinite;
+  }
+
+  .animate-metrics-marquee:hover {
+    animation-play-state: paused;
+  }
+}
+
+/* n8n Chat Widget — se adapta a la paleta de Kany y a modo claro/oscuro */
+:root {
+  --chat--color--primary: var(--primary);
+  --chat--color--primary-shade-50: var(--primary);
+  --chat--color--primary--shade-100: var(--primary);
+  --chat--color--secondary: var(--secondary);
+  --chat--color-secondary-shade-50: var(--secondary);
+  --chat--color-dark: var(--foreground);
+  --chat--color-light: var(--card);
+  --chat--border-radius: var(--radius-md);
+  --chat--window--border-radius: var(--radius-lg);
+  --chat--toggle--size: 60px;
+}
+
+.dark {
+  --chat--color-white: var(--card);
+  --chat--color-light: var(--card);
+  --chat--input--background: var(--card);
+  --chat--message--bot--background: var(--card);
+  --chat--body--background: var(--background);
+  --chat--footer--background: var(--background);
+}

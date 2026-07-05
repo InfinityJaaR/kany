@@ -2,11 +2,10 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, CheckCircle, Mail, MapPin, Wand2 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCircle, Mail, MapPin, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LocationPicker, type HomeLocation } from '@/components/auth/location-picker'
 import { SiteHeader } from '@/components/layout/site-header'
-import { PetsModuleNav } from '@/components/layout/pets-module-nav'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { useRequireAuth } from '@/lib/auth/use-require-auth'
 import { createClient } from '@/lib/supabase/client'
@@ -94,7 +93,7 @@ export default function ReportarPage() {
       await fetch('/api/n8n/lost-pet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lostPetId }),
+        body: JSON.stringify({ lostPetId, event: 'lost' }),
       })
     } catch (notificationError) {
       console.error('n8n notification failed:', notificationError)
@@ -168,6 +167,16 @@ export default function ReportarPage() {
     <div className="min-h-screen bg-background">
       <SiteHeader />
       <main className="max-w-5xl mx-auto px-4 py-12">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => router.back()}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Volver
+        </Button>
+
         <div className="mb-6">
           <div className="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-3 py-1 text-sm font-medium text-red-700 dark:text-red-300 mb-4">
             <AlertTriangle className="h-4 w-4" />
@@ -178,8 +187,6 @@ export default function ReportarPage() {
             Marca el punto donde fue vista por ultima vez para alertar a personas cercanas.
           </p>
         </div>
-
-        <PetsModuleNav active="reportar" />
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
           <section className="bg-card border border-border rounded-2xl p-6 space-y-5">

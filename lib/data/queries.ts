@@ -6,6 +6,10 @@ export type LostPetRow = {
   breed: string | null
   color: string | null
   location: string | null
+  location_department: string | null
+  location_municipality: string | null
+  latitude: number | null
+  longitude: number | null
   date_text: string | null
   description: string | null
   reward: string | null

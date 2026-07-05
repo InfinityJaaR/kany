@@ -16,6 +16,10 @@ export type HomeLocation = {
 type LocationPickerProps = {
   value: HomeLocation
   onChange: (value: HomeLocation) => void
+  title?: string
+  description?: string
+  emptyHint?: string
+  footerText?: string
 }
 
 type MapPoint = {
@@ -84,7 +88,14 @@ function getLocationLabel(data: {
   return [road, municipality, department].filter(Boolean).join(', ') || data.display_name || ''
 }
 
-export function LocationPicker({ value, onChange }: LocationPickerProps) {
+export function LocationPicker({
+  value,
+  onChange,
+  title = 'Ubicacion de casa',
+  description = 'Usa tu ubicacion actual o mueve el mapa hasta dejar el pin sobre tu casa.',
+  emptyHint = 'Presiona Actual o arrastra el mapa para elegir tu punto de alertas.',
+  footerText = 'Este punto se usara para notificarte cuando una mascota perdida se reporte cerca.',
+}: LocationPickerProps) {
   const mapRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{
     pointerId: number
@@ -254,10 +265,10 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <label className="block text-sm font-medium text-foreground">
-            Ubicacion de casa
+            {title}
           </label>
           <p className="mt-1 text-xs text-foreground/60">
-            Usa tu ubicacion actual o mueve el mapa hasta dejar el pin sobre tu casa.
+            {description}
           </p>
         </div>
         <Button type="button" variant="outline" onClick={useCurrentLocation} className="gap-2">
@@ -320,7 +331,7 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
         </div>
         {!selected && (
           <div className="absolute inset-x-3 bottom-3 rounded-lg border border-border bg-card/95 px-3 py-2 text-xs text-foreground/70 shadow-sm">
-            Presiona Actual o arrastra el mapa para elegir tu punto de alertas.
+            {emptyHint}
           </div>
         )}
       </div>
@@ -389,8 +400,7 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
       {(locationStatus || selected) && (
         <p className="text-xs text-foreground/60 flex gap-2">
           <Crosshair className="h-4 w-4 shrink-0" />
-          {locationStatus ??
-            'Este punto se usara para notificarte cuando una mascota perdida se reporte cerca.'}
+          {locationStatus ?? footerText}
         </p>
       )}
     </section>

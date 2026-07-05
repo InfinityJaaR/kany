@@ -11,6 +11,7 @@ import {
   HeartHandshake,
   KeyRound,
   MapPin,
+  MessageCircle,
   Save,
   Settings,
   ShieldCheck,
@@ -28,7 +29,7 @@ import { USER_TYPE_LABELS, type Profile, type UserType } from '@/types/auth'
 import type { User } from '@supabase/supabase-js'
 import type { LucideIcon } from 'lucide-react'
 
-type SectionKey = 'general' | 'security' | 'publications' | 'vet' | 'campaigns'
+type SectionKey = 'general' | 'security' | 'messages' | 'publications' | 'vet' | 'campaigns'
 
 type ProfileSection = {
   key: SectionKey
@@ -77,6 +78,7 @@ const panelClass = 'border-b border-border py-6 first:pt-0 last:border-b-0'
 function sectionLabel(section: SectionKey) {
   if (section === 'general') return 'General'
   if (section === 'security') return 'Seguridad'
+  if (section === 'messages') return 'Mensajes'
   if (section === 'publications') return 'Mis publicaciones'
   if (section === 'vet') return 'Mi veterinaria'
   return 'Mis campanas'
@@ -84,6 +86,7 @@ function sectionLabel(section: SectionKey) {
 
 function normalizeSection(value: string | null, userType?: UserType): SectionKey {
   if (value === 'security') return 'security'
+  if (value === 'messages') return 'messages'
   if (value === 'publications' && userType === 'person') return 'publications'
   if (value === 'vet' && userType === 'vet') return 'vet'
   if (value === 'campaigns' && userType === 'foundation') return 'campaigns'
@@ -236,6 +239,7 @@ function ProfileContent() {
     const base: ProfileSection[] = [
       { key: 'general' as const, label: 'General', icon: Settings },
       { key: 'security' as const, label: 'Seguridad', icon: ShieldCheck },
+      { key: 'messages' as const, label: 'Mensajes', icon: MessageCircle },
     ]
 
     if (profile?.user_type === 'person') {
@@ -578,6 +582,25 @@ function ProfileContent() {
                     {passwordMessage}
                   </p>
                 )}
+              </section>
+            )}
+
+            {activeSection === 'messages' && (
+              <section className="rounded-lg border border-border bg-card p-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-xl font-semibold">Centro de mensajes</h2>
+                    <p className="mt-1 text-sm text-foreground/60">
+                      Revisa conversaciones sobre publicaciones y responde en tiempo real.
+                    </p>
+                  </div>
+                  <Link href="/mensajes">
+                    <Button className="bg-primary hover:bg-primary/90">
+                      <MessageCircle className="h-4 w-4" />
+                      Abrir mensajes
+                    </Button>
+                  </Link>
+                </div>
               </section>
             )}
 

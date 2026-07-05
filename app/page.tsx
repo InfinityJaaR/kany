@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/ui/logo'
 import { SiteHeaderSuspense } from '@/components/layout/site-header'
 import { WrongRoleBanner } from '@/components/layout/wrong-role-banner'
 import { getSessionProfile } from '@/lib/auth/profile'
@@ -204,7 +205,7 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div>
-              <h5 className="font-bold text-foreground mb-4">Kany</h5>
+              <Logo size={40} className="mb-4" />
               <p className="text-sm text-foreground/60">
                 Plataforma comunitaria para el cuidado animal en El Salvador.
               </p>

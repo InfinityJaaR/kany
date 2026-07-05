@@ -5,17 +5,13 @@ import { Button } from '@/components/ui/button'
 import { AuthButton } from '@/components/layout/auth-button'
 import { RoleBadge, RoleNav } from '@/components/layout/role-nav'
 import { ThemeToggle } from '@/components/layout/theme-toggle'
+import { Logo } from '@/components/ui/logo'
 
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/50 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">K</span>
-          </div>
-          <h1 className="text-xl font-bold text-foreground">Kany</h1>
-        </Link>
+        <Logo />
         <div className="flex items-center gap-2 md:gap-4">
           <RoleNav />
           <RoleBadge />

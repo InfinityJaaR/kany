@@ -20,6 +20,7 @@ function useHeroVideoTheme() {
   const [theme, setTheme] = useState<HeroVideoTheme>('light')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync theme from the DOM on mount, before observing changes
     setTheme(getTheme())
 
     const observer = new MutationObserver(() => setTheme(getTheme()))

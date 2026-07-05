@@ -211,6 +211,7 @@ function MessagesContent() {
 
   useEffect(() => {
     if (!selectedConversation?.id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset local state when the selection is cleared
       setMessages([])
       return
     }

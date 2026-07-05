@@ -24,6 +24,7 @@ function SiteNavPanel({
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- flags client-side mount before using createPortal
     setMounted(true)
   }, [])
 

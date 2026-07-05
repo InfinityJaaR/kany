@@ -29,6 +29,7 @@ export function ImageUpload({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync preview when the initialUrl prop changes
     setPreview(initialUrl)
   }, [initialUrl])
 

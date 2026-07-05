@@ -16,6 +16,7 @@ export type LostPetRow = {
   contact: string | null
   status: string
   image_url: string | null
+  reported_by: string | null
   created_at: string
 }
 
@@ -143,10 +144,26 @@ export async function fetchLostPets(): Promise<LostPetRow[]> {
   const { data, error } = await supabase
     .from('lost_pets')
     .select('*')
+    .neq('status', 'found')
     .order('created_at', { ascending: false })
 
   if (error) {
     console.error('fetchLostPets:', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+export async function fetchRecoveredLostPets(): Promise<LostPetRow[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('lost_pets')
+    .select('*')
+    .eq('status', 'found')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('fetchRecoveredLostPets:', error.message)
     return []
   }
   return data ?? []

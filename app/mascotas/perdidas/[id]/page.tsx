@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Calendar, Mail, MapPin } from 'lucide-react'
+import { ArrowLeft, Calendar, FilePenLine, Mail, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SiteHeader } from '@/components/layout/site-header'
+import { MarkFoundButton, SharePetButton } from '@/components/pets/lost-pet-actions'
 import { createClient } from '@/lib/supabase/server'
 import { getLostStatusLabel } from '@/lib/pets-utils'
 import type { LostPetRow } from '@/lib/data/queries'
@@ -24,6 +25,10 @@ export default async function LostPetDetailPage({ params }: PageProps) {
 
   if (error || !pet) notFound()
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const canMarkFound = user?.id === pet.reported_by && pet.status !== 'found'
   const mapsUrl =
     pet.latitude && pet.longitude
       ? `https://www.google.com/maps?q=${pet.latitude},${pet.longitude}`
@@ -40,8 +45,14 @@ export default async function LostPetDetailPage({ params }: PageProps) {
 
         <article className="overflow-hidden rounded-2xl border border-border bg-card">
           {pet.image_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={pet.image_url} alt={pet.name} className="h-80 w-full object-cover" />
+            <div className="flex max-h-[560px] min-h-64 items-center justify-center bg-muted">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={pet.image_url}
+                alt={pet.name}
+                className="max-h-[560px] w-full object-contain"
+              />
+            </div>
           )}
 
           <div className="p-6 md:p-8">
@@ -105,6 +116,19 @@ export default async function LostPetDetailPage({ params }: PageProps) {
             )}
 
             <div className="flex flex-col sm:flex-row gap-3">
+              <SharePetButton
+                petName={pet.name}
+                path={`/mascotas/perdidas/${pet.id}`}
+                className="flex-1"
+              />
+              {canMarkFound && (
+                <Link href="/perfil?section=publications" className="flex-1">
+                  <Button variant="outline" className="w-full">
+                    <FilePenLine className="h-4 w-4" />
+                    Editar
+                  </Button>
+                </Link>
+              )}
               {pet.contact && (
                 <a href={`mailto:${pet.contact}`} className="flex-1">
                   <Button className="w-full bg-primary hover:bg-primary/90">Enviar correo</Button>
@@ -116,6 +140,14 @@ export default async function LostPetDetailPage({ params }: PageProps) {
                 </a>
               )}
             </div>
+
+            {canMarkFound && (
+              <MarkFoundButton
+                petId={pet.id}
+                petName={pet.name}
+                className="mt-4"
+              />
+            )}
           </div>
         </article>
       </main>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ImagePlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { uploadImage, validateImageFile, type StorageBucket } from '@/lib/supabase/upload-image'
@@ -10,6 +10,7 @@ interface ImageUploadProps {
   bucket: StorageBucket
   folder: string
   label?: string
+  initialUrl?: string | null
   onUploaded: (url: string) => void
   onClear?: () => void
 }
@@ -18,13 +19,18 @@ export function ImageUpload({
   bucket,
   folder,
   label = 'Foto',
+  initialUrl = null,
   onUploaded,
   onClear,
 }: ImageUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [preview, setPreview] = useState<string | null>(initialUrl)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setPreview(initialUrl)
+  }, [initialUrl])
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
